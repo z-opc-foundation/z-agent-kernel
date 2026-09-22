@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!--
+        z-agent-kernel: agent 框架基座, 25 个子模块 1:1 对齐 agentScope Python 内部结构.
+        - 11 个核心 SDK 包 (装 SPI + 默认实现): llm / message / tool / memory / agent / event / middleware / state / pipeline / workspace / formatter
+        - 8 个扩展 SPI 包 (只装接口, 0 实现): embedding / rag / tts / realtime / skill / mcp / credential / permission
+        - 3 个框架包 (类型/异常/分类器): types / exception / classifier
+        - 2 个 UI SPI 包 (前端接口): console / tui
+        - 1 个应用框架: app
+        上层仓 z-llm / z-mcp / z-skill / z-bot / z-agent-proxy / z-agent 各取所需子模块 declare.
+        发版模式: reversion (CI-friendly versions) + flatten-maven-plugin, 跟 z-boot 同源.
+    -->
+    <groupId>io.github.yuku123</groupId>
+    <artifactId>z-agent-kernel</artifactId>
+    <version>${revision}</version>
+    <packaging>pom</packaging>
+
+    <name>z-agent-kernel (Agent Framework Base)</name>
+    <description>Agent 框架基座 25 子模块 (1:1 对齐 agentScope), 上层 z-llm/z-mcp/z-skill/z-bot/z-agent-proxy 共享</description>
+    <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
+
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>yuku123</id>
+            <name>yuku123</name>
+            <email>1340947819@qq.com</email>
+            <organization>z-team</organization>
+            <organizationUrl>https://github.com/yuku123</organizationUrl>
+            <timezone>+08:00</timezone>
+            <roles>
+                <role>owner</role>
+            </roles>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:git:https://github.com/z-opc-foundation/z-agent-kernel.git</connection>
+        <developerConnection>scm:ssh://git@github.com/z-opc-foundation/z-agent-kernel.git</developerConnection>
+        <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <modules>
+        <!-- 核心 SDK 包 (装 SPI + 默认实现, 11 个) -->
+        <module>z-agent-kernel-llm</module>
+        <module>z-agent-kernel-message</module>
+        <module>z-agent-kernel-tool</module>
+        <module>z-agent-kernel-memory</module>
+        <module>z-agent-kernel-agent</module>
+        <module>z-agent-kernel-event</module>
+        <module>z-agent-kernel-middleware</module>
+        <module>z-agent-kernel-state</module>
+        <module>z-agent-kernel-pipeline</module>
+        <module>z-agent-kernel-workspace</module>
+        <module>z-agent-kernel-formatter</module>
+
+        <!-- 扩展 SPI 包 (只装接口, 0 实现, 8 个) -->
+        <module>z-agent-kernel-embedding</module>
+        <module>z-agent-kernel-rag</module>
+        <module>z-agent-kernel-tts</module>
+        <module>z-agent-kernel-realtime</module>
+        <module>z-agent-kernel-skill</module>
+        <module>z-agent-kernel-mcp</module>
+        <module>z-agent-kernel-credential</module>
+        <module>z-agent-kernel-permission</module>
+
+        <!-- 框架包 (类型/异常/分类器, 3 个) -->
+        <module>z-agent-kernel-types</module>
+        <module>z-agent-kernel-exception</module>
+        <module>z-agent-kernel-classifier</module>
+
+        <!-- UI/前端包 (SPI only, 2 个) -->
+        <module>z-agent-kernel-console</module>
+        <module>z-agent-kernel-tui</module>
+
+        <!-- 应用框架 (1 个) -->
+        <module>z-agent-kernel-app</module>
+    </modules>
+
+    <properties>
+        <!-- 项目自身版本 (CI-friendly versions 根, 发版改这一处即可) -->
+        <revision>0.1.0</revision>
+
+        <!-- JDK / 编译 -->
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Maven 插件版本 -->
+        <maven-deploy-plugin.version>3.1.4</maven-deploy-plugin.version>
+        <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
+        <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
+        <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
+        <central-publishing-plugin.version>0.7.0</central-publishing-plugin.version>
+        <flatten-maven-plugin.version>1.7.3</flatten-maven-plugin.version>
+    </properties>
+
+    <profiles>
+        <profile>
+            <id>central</id>
+            <properties>
+                <maven.javadoc.skip>false</maven.javadoc.skip>
+                <central.gpg.skip>false</central.gpg.skip>
+            </properties>
+            <distributionManagement>
+                <repository>
+                    <id>central</id>
+                    <url>https://central.sonatype.com</url>
+                </repository>
+                <snapshotRepository>
+                    <id>central</id>
+                    <url>https://central.sonatype.com</url>
+                </snapshotRepository>
+            </distributionManagement>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <version>${maven-deploy-plugin.version}</version>
+                        <configuration><skip>true</skip></configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>${maven-source-plugin.version}</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals><goal>jar-no-fork</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>${maven-javadoc-plugin.version}</version>
+                        <configuration>
+                            <doclint>none</doclint>
+                            <failOnError>false</failOnError>
+                            <failOnWarnings>false</failOnWarnings>
+                            <quiet>true</quiet>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <phase>verify</phase>
+                                <goals><goal>jar</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>${maven-gpg-plugin.version}</version>
+                        <configuration>
+                            <skip>${central.gpg.skip}</skip>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                                <arg>--no-tty</arg>
+                            </gpgArguments>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals><goal>sign</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central-publishing-plugin.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
+                            <tokenAuth>true</tokenAuth>
+                            <autoPublish>true</autoPublish>
+                            <waitUntil>uploaded</waitUntil>
+                            <waitMaxTime>1800</waitMaxTime>
+                            <waitPollingInterval>10</waitPollingInterval>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <build>
+        <plugins>
+            <!--
+                flatten-maven-plugin: ${revision} 在 deploy 前替换为字面版本号
+                - updatePomFile=true 写入原 pom (子模块继承 ${revision} 才能 compile)
+                - flattenMode=oss 子 POM 完全 self-contained + 自定义 ${xxx} 解析 + 元数据保留
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>flatten-maven-plugin</artifactId>
+                <version>${flatten-maven-plugin.version}</version>
+                <configuration>
+                    <updatePomFile>true</updatePomFile>
+                    <flattenMode>oss</flattenMode>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>flatten</id>
+                        <phase>process-resources</phase>
+                        <goals><goal>flatten</goal></goals>
+                    </execution>
+                    <execution>
+                        <id>flatten.clean</id>
+                        <phase>clean</phase>
+                        <goals><goal>clean</goal></goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
