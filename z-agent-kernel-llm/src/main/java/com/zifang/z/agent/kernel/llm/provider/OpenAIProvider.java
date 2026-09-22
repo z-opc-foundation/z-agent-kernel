@@ -89,8 +89,62 @@ public class OpenAIProvider implements LlmProvider {
 
     @Override
     public void streamChat(ChatCompletionsRequest request, Consumer<ChatCompletionsResponse> onChunk, Consumer<Throwable> onError) {
-        // TODO: 实现 SSE 流式解析. 当前先抛异常, 让上层感知暂未实现.
-        onError.accept(new LlmException(name(), "streamChat not yet implemented in OpenAIProvider"));
+        Map<String, Object> body = buildRequestBody(request, true);
+        http.postJsonStream(apiBase + "/chat/completions", authHeaders(), body,
+                line -> {
+                    if ("[DONE]".equals(line)) return;
+                    ChatCompletionsResponse chunk = parseStreamChunk(line);
+                    if (chunk != null) onChunk.accept(chunk);
+                },
+                onError,
+                null);
+    }
+
+    /**
+     * 解析 OpenAI 兼容协议的单条 SSE 数据行. 返回的 ChatCompletionsResponse 表示这一个增量 chunk.
+     * <p>OpenAI 格式: data: {"id":..., "choices":[{"delta":{"role":..., "content":..., "tool_calls":[...]}}]}
+     */
+    protected ChatCompletionsResponse parseStreamChunk(String line) {
+        try {
+            JsonNode root = http.json().readTree(line);
+            String id = textOrNull(root, "id");
+            String model = textOrNull(root, "model");
+            JsonNode arr = root.path("choices");
+            List<ChatCompletionsResponse.Choice> choices = new ArrayList<>();
+            String finish = null;
+            TokenUsage usage = TokenUsage.empty();
+            JsonNode usageNode = root.path("usage");
+            if (usageNode.isObject() && usageNode.size() > 0) {
+                usage = new TokenUsage(
+                        usageNode.path("prompt_tokens").asLong(0L),
+                        usageNode.path("completion_tokens").asLong(0L),
+                        usageNode.path("total_tokens").asLong(0L));
+            }
+            for (int i = 0; i < arr.size(); i++) {
+                JsonNode c = arr.get(i);
+                JsonNode delta = c.path("delta");
+                StringBuilder contentBuf = new StringBuilder();
+                if (delta.has("content") && !delta.path("content").isNull()) {
+                    contentBuf.append(delta.path("content").asText(""));
+                }
+                List<ToolCall> tcs = new ArrayList<>();
+                JsonNode tcArr = delta.path("tool_calls");
+                if (tcArr.isArray()) {
+                    for (JsonNode t : tcArr) {
+                        JsonNode fn = t.path("function");
+                        String args = textOrNull(fn, "arguments");
+                        tcs.add(new ToolCall(textOrNull(t, "id"), textOrNull(fn, "name"),
+                                args == null ? "{}" : args));
+                    }
+                }
+                String fr = textOrNull(c, "finish_reason");
+                if (fr != null) finish = fr;
+                choices.add(new ChatCompletionsResponse.Choice(i, contentBuf.toString(), tcs, fr));
+            }
+            return new ChatCompletionsResponse(id, model, choices, usage, finish, java.util.Collections.emptyMap());
+        } catch (Exception e) {
+            throw new LlmException(name(), "parseStreamChunk failed: " + line, e);
+        }
     }
 
     // ---- 内部 helper ----

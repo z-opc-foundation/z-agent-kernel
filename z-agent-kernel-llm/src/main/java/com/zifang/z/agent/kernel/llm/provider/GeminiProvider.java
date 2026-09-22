@@ -90,7 +90,64 @@ public class GeminiProvider implements LlmProvider {
 
     @Override
     public void streamChat(ChatCompletionsRequest request, Consumer<ChatCompletionsResponse> onChunk, Consumer<Throwable> onError) {
-        onError.accept(new LlmException(name(), "streamChat not yet implemented in GeminiProvider"));
+        Map<String, Object> body = buildRequestBody(request, true);
+        // ?alt=sse 让 Gemini 返回标准 SSE 格式 (默认是 JSONL)
+        String url = apiBase + "/v1beta/models/" + request.getModel() + ":streamGenerateContent?alt=sse";
+        http.postJsonStream(url, authHeaders(), body,
+                line -> {
+                    ChatCompletionsResponse chunk = parseStreamChunk(line);
+                    if (chunk != null) onChunk.accept(chunk);
+                },
+                onError,
+                null);
+    }
+
+    /**
+     * 解析 Gemini SSE 流式 chunk.
+     * 格式: {"candidates":[{"content":{"parts":[{"text":"...增量..."}],"role":"model"}, "finishReason":"..."}], "usageMetadata":{...}, "modelVersion":"..."}
+     */
+    protected ChatCompletionsResponse parseStreamChunk(String line) {
+        try {
+            JsonNode root = http.json().readTree(line);
+            String id = textOrNull(root, "modelVersion");
+            JsonNode u = root.path("usageMetadata");
+            TokenUsage usage = TokenUsage.empty();
+            if (u.isObject() && u.size() > 0) {
+                usage = new TokenUsage(
+                        u.path("promptTokenCount").asLong(0L),
+                        u.path("candidatesTokenCount").asLong(0L),
+                        u.path("totalTokenCount").asLong(0L));
+            }
+            List<ChatCompletionsResponse.Choice> choices = new ArrayList<>();
+            String finish = null;
+            JsonNode arr = root.path("candidates");
+            for (int i = 0; i < arr.size(); i++) {
+                JsonNode c = arr.get(i);
+                StringBuilder textBuf = new StringBuilder();
+                List<ToolCall> tcs = new ArrayList<>();
+                JsonNode parts = c.path("content").path("parts");
+                if (parts.isArray()) {
+                    for (JsonNode p : parts) {
+                        JsonNode tp = p.path("text");
+                        if (!tp.isMissingNode() && !tp.isNull()) {
+                            if (textBuf.length() > 0) textBuf.append("\n");
+                            textBuf.append(tp.asText());
+                        }
+                        JsonNode fc = p.path("functionCall");
+                        if (!fc.isMissingNode() && !fc.isNull()) {
+                            String argsJson = http.json().writeValueAsString(fc.path("args"));
+                            tcs.add(new ToolCall(null, textOrNull(fc, "name"), argsJson));
+                        }
+                    }
+                }
+                String fr = textOrNull(c, "finishReason");
+                if (fr != null) finish = fr;
+                choices.add(new ChatCompletionsResponse.Choice(i, textBuf.toString(), tcs, fr));
+            }
+            return new ChatCompletionsResponse(id, null, choices, usage, finish, Collections.emptyMap());
+        } catch (Exception e) {
+            throw new LlmException(name(), "parseStreamChunk failed: " + line, e);
+        }
     }
 
     // ---- 内部 helper ----

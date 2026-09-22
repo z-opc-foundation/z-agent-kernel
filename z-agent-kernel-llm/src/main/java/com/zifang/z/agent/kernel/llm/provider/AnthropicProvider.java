@@ -13,6 +13,7 @@ import com.zifang.z.agent.kernel.types.MessageRole;
 import com.zifang.z.agent.kernel.types.TokenUsage;
 import okhttp3.Headers;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -87,8 +88,129 @@ public class AnthropicProvider implements LlmProvider {
 
     @Override
     public void streamChat(ChatCompletionsRequest request, Consumer<ChatCompletionsResponse> onChunk, Consumer<Throwable> onError) {
-        onError.accept(new LlmException(name(), "streamChat not yet implemented in AnthropicProvider"));
+        // Anthropic SSE 同时用 event: + data: 两行, okhttp-sse EventSource 只暴露 data 字段.
+        // 这里走原始 BufferedReader 逐行解析 event+data.
+        Map<String, Object> body = buildRequestBody(request, true);
+        try {
+            String bodyJson = http.json().writeValueAsString(body);
+            okhttp3.Request httpReq = new okhttp3.Request.Builder()
+                    .url(apiBase + "/v1/messages")
+                    .headers(authHeaders())
+                    .post(okhttp3.RequestBody.create(bodyJson, LlmHttp.JSON))
+                    .build();
+            http.client().newCall(httpReq).enqueue(new okhttp3.Callback() {
+                @Override
+                public void onFailure(okhttp3.Call call, IOException e) {
+                    onError.accept(new LlmException(name(), "stream I/O", e));
+                }
+
+                @Override
+                public void onResponse(okhttp3.Call call, okhttp3.Response resp) {
+                    try (okhttp3.ResponseBody rb = resp.body()) {
+                        if (!resp.isSuccessful()) {
+                            String text = rb == null ? "" : rb.string();
+                            onError.accept(new LlmException(name(), resp.code(), text));
+                            return;
+                        }
+                        if (rb == null) {
+                            onError.accept(new LlmException(name(), "empty response body"));
+                            return;
+                        }
+                        java.io.BufferedReader br = new java.io.BufferedReader(rb.charStream());
+                        String line;
+                        String event = null;
+                        StringBuilder dataBuf = new StringBuilder();
+                        while ((line = br.readLine()) != null) {
+                            if (line.isEmpty()) {
+                                if (event != null && dataBuf.length() > 0) {
+                                    try {
+                                        ChatCompletionsResponse chunk = parseAnthropicEvent(event, dataBuf.toString());
+                                        if (chunk != null) onChunk.accept(chunk);
+                                    } catch (Throwable t) {
+                                        onError.accept(new LlmException(name(), "parseEvent", t));
+                                    }
+                                }
+                                event = null;
+                                dataBuf = new StringBuilder();
+                                continue;
+                            }
+                            if (line.startsWith("event: ")) {
+                                event = line.substring(7).trim();
+                            } else if (line.startsWith("data: ")) {
+                                if (dataBuf.length() > 0) dataBuf.append("\n");
+                                dataBuf.append(line.substring(6));
+                            }
+                        }
+                    } catch (Exception e) {
+                        onError.accept(new LlmException(name(), "stream read", e));
+                    }
+                }
+            });
+        } catch (Exception e) {
+            onError.accept(new LlmException(name(), "stream setup", e));
+        }
     }
+
+    /**
+     * 解析单条 Anthropic SSE 事件 (event 头 + data JSON).
+     * 事件类型: message_start / content_block_start / content_block_delta / content_block_stop /
+     *          message_delta / message_stop / ping / error.
+     */
+    protected ChatCompletionsResponse parseAnthropicEvent(String event, String data) {
+        try {
+            JsonNode root = http.json().readTree(data);
+            switch (event) {
+                case "message_start": {
+                    String id = textOrNull(root.path("message"), "id");
+                    String model = textOrNull(root.path("message"), "model");
+                    JsonNode u = root.path("message").path("usage");
+                    TokenUsage usage = new TokenUsage(u.path("input_tokens").asLong(0L),
+                            u.path("output_tokens").asLong(0L),
+                            u.path("input_tokens").asLong(0L) + u.path("output_tokens").asLong(0L));
+                    List<ChatCompletionsResponse.Choice> choices = new ArrayList<>();
+                    choices.add(new ChatCompletionsResponse.Choice(0, "", Collections.emptyList(), null));
+                    return new ChatCompletionsResponse(id, model, choices, usage, null, Collections.emptyMap());
+                }
+                case "content_block_delta": {
+                    String id = lastMessageId;
+                    String model = lastMessageModel;
+                    JsonNode delta = root.path("delta");
+                    StringBuilder textBuf = new StringBuilder();
+                    if ("text_delta".equals(textOrNull(delta, "type"))) {
+                        textBuf.append(textOrNull(delta, "text"));
+                    } else if ("input_json_delta".equals(textOrNull(delta, "type"))) {
+                        // tool 输入 JSON 增量, kernel 不暴露原始增量, 跳过
+                    }
+                    List<ChatCompletionsResponse.Choice> choices = new ArrayList<>();
+                    choices.add(new ChatCompletionsResponse.Choice(0, textBuf.toString(), Collections.emptyList(), null));
+                    return new ChatCompletionsResponse(id, model, choices, TokenUsage.empty(), null, Collections.emptyMap());
+                }
+                case "message_delta": {
+                    String stopReason = textOrNull(root.path("delta"), "stop_reason");
+                    JsonNode u = root.path("usage");
+                    TokenUsage usage = new TokenUsage(u.path("input_tokens").asLong(0L),
+                            u.path("output_tokens").asLong(0L),
+                            u.path("input_tokens").asLong(0L) + u.path("output_tokens").asLong(0L));
+                    List<ChatCompletionsResponse.Choice> choices = new ArrayList<>();
+                    choices.add(new ChatCompletionsResponse.Choice(0, "", Collections.emptyList(), stopReason));
+                    return new ChatCompletionsResponse(lastMessageId, lastMessageModel, choices, usage, stopReason, Collections.emptyMap());
+                }
+                case "message_stop":
+                case "ping":
+                case "content_block_start":
+                case "content_block_stop":
+                case "error":
+                default:
+                    // 不关心的事件, 不产生 chunk
+                    return null;
+            }
+        } catch (Exception e) {
+            throw new LlmException(name(), "parseAnthropicEvent(" + event + ") failed: " + data, e);
+        }
+    }
+
+    private String lastMessageId = null;
+    private String lastMessageModel = null;
 
     // ---- 内部 helper ----
 

@@ -103,7 +103,57 @@ public class DashScopeProvider implements LlmProvider {
 
     @Override
     public void streamChat(ChatCompletionsRequest request, Consumer<ChatCompletionsResponse> onChunk, Consumer<Throwable> onError) {
-        onError.accept(new LlmException(name(), "streamChat not yet implemented in DashScopeProvider"));
+        Map<String, Object> body = buildRequestBody(request, true);
+        http.postJsonStream(apiBase + "/services/aigc/text-generation/generation", authHeaders(), body,
+                line -> {
+                    ChatCompletionsResponse chunk = parseStreamChunk(line);
+                    if (chunk != null) onChunk.accept(chunk);
+                },
+                onError,
+                null);
+    }
+
+    /**
+     * 解析 DashScope 原生 SSE 流式 chunk (incremental_output=true 模式).
+     * 格式: {"output":{"choices":[{"message":{"content":"...增量文本...","tool_calls":[...]}, "finish_reason":"..."}]}, "usage":{...}, "request_id":"..."}
+     */
+    protected ChatCompletionsResponse parseStreamChunk(String line) {
+        try {
+            JsonNode root = http.json().readTree(line);
+            String id = textOrNull(root, "request_id");
+            JsonNode output = root.path("output");
+            JsonNode usage = root.path("usage");
+            TokenUsage tu = TokenUsage.empty();
+            if (usage.isObject() && usage.size() > 0) {
+                tu = new TokenUsage(
+                        usage.path("input_tokens").asLong(0L),
+                        usage.path("output_tokens").asLong(0L),
+                        usage.path("total_tokens").asLong(0L));
+            }
+            List<ChatCompletionsResponse.Choice> choices = new ArrayList<>();
+            String finish = null;
+            JsonNode arr = output.path("choices");
+            for (int i = 0; i < arr.size(); i++) {
+                JsonNode c = arr.get(i);
+                JsonNode msg = c.path("message");
+                String content = textOrNull(msg, "content");
+                if (content == null) content = "";
+                String fr = textOrNull(c, "finish_reason");
+                if (fr != null) finish = fr;
+                List<ToolCall> tcs = new ArrayList<>();
+                JsonNode tcArr = msg.path("tool_calls");
+                if (tcArr.isArray()) {
+                    for (JsonNode t : tcArr) {
+                        JsonNode fn = t.path("function");
+                        tcs.add(new ToolCall(textOrNull(t, "id"), textOrNull(fn, "name"), textOrNull(fn, "arguments")));
+                    }
+                }
+                choices.add(new ChatCompletionsResponse.Choice(i, content, tcs, fr));
+            }
+            return new ChatCompletionsResponse(id, null, choices, tu, finish, Collections.emptyMap());
+        } catch (Exception e) {
+            throw new LlmException(name(), "parseStreamChunk failed: " + line, e);
+        }
     }
 
     // ---- 内部 helper ----
