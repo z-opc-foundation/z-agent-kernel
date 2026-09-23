@@ -89,7 +89,7 @@
 
     <properties>
         <!-- 项目自身版本 (CI-friendly versions 根, 发版改这一处即可) -->
-        <revision>0.1.0</revision>
+        <revision>0.1.1</revision>
 
         <!-- JDK / 编译 -->
         <maven.compiler.source>8</maven.compiler.source>
@@ -101,7 +101,7 @@
         <maven-source-plugin.version>3.3.0</maven-source-plugin.version>
         <maven-javadoc-plugin.version>3.11.2</maven-javadoc-plugin.version>
         <maven-gpg-plugin.version>3.2.7</maven-gpg-plugin.version>
-        <central-publishing-plugin.version>0.7.0</central-publishing-plugin.version>
+        <central-publishing-plugin.version>0.8.0</central-publishing-plugin.version>
         <flatten-maven-plugin.version>1.7.3</flatten-maven-plugin.version>
     </properties>
 

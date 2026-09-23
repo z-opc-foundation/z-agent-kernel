@@ -34,6 +34,17 @@ public final class ToolResult {
         return new ToolResult(callId, name, error, true, null);
     }
 
+    /**
+     * 工具侧便捷工厂: 不携带 callId/name (由派发方在回灌消息时补齐)。
+     */
+    public static ToolResult text(String content) {
+        return new ToolResult(null, null, content, false, null);
+    }
+
+    public static ToolResult error(String error) {
+        return new ToolResult(null, null, error, true, null);
+    }
+
     public String getCallId() {
         return callId;
     }

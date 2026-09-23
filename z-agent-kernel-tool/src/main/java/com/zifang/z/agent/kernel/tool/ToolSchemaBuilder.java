@@ -36,7 +36,11 @@ public class ToolSchemaBuilder {
     }
 
     public ToolSchemaBuilder stringArray(String name, String description) {
-        return array(name, description, "string");
+        return array(name, description, "string", true);
+    }
+
+    public ToolSchemaBuilder stringArray(String name, String description, boolean required) {
+        return array(name, description, "string", required);
     }
 
     public ToolSchemaBuilder bool(String name, String description) {
@@ -74,17 +78,30 @@ public class ToolSchemaBuilder {
     }
 
     public ToolSchemaBuilder array(String name, String description, String itemType) {
+        return array(name, description, itemType, true);
+    }
+
+    public ToolSchemaBuilder array(String name, String description, String itemType, boolean required) {
         Map<String, Object> items = itemType == null ? null : Collections.singletonMap("type", itemType);
         properties.put(name, jsonSchema("array", description, items, null));
-        this.required.add(name);
+        if (required) this.required.add(name);
         return this;
     }
 
     public ToolSchemaBuilder object(String name, String description) {
-        return object(name, description, (Map<String, Object>) null);
+        return object(name, description, (Map<String, Object>) null, true);
     }
 
     public ToolSchemaBuilder object(String name, String description, Map<String, Object> nestedProperties) {
+        return object(name, description, nestedProperties, true);
+    }
+
+    public ToolSchemaBuilder object(String name, String description, boolean required) {
+        return object(name, description, (Map<String, Object>) null, required);
+    }
+
+    public ToolSchemaBuilder object(String name, String description, Map<String, Object> nestedProperties,
+                                    boolean required) {
         Map<String, Object> objSchema = new LinkedHashMap<>();
         objSchema.put("type", "object");
         if (description != null) objSchema.put("description", description);
@@ -92,7 +109,7 @@ public class ToolSchemaBuilder {
             objSchema.put("properties", nestedProperties);
         }
         properties.put(name, objSchema);
-        this.required.add(name);
+        if (required) this.required.add(name);
         return this;
     }
 
