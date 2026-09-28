@@ -18,12 +18,6 @@
     <name>z-agent-kernel-agent (core)</name>
     <description>ReAct/Plan/Multi agent 编排基类 + 默认实现</description>
 
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>
         <license>
@@ -53,25 +47,22 @@
     </scm>
 
     <dependencies>
+        <!-- 兄弟模块的版本由仓库根 dependencyManagement 的 project.version 自钉提供，这里不写版本 -->
         <dependency>
             <groupId>io.github.yuku123</groupId>
             <artifactId>z-agent-kernel-message</artifactId>
-            <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>io.github.yuku123</groupId>
             <artifactId>z-agent-kernel-tool</artifactId>
-            <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>io.github.yuku123</groupId>
             <artifactId>z-agent-kernel-types</artifactId>
-            <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

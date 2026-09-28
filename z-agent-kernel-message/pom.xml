@@ -18,12 +18,6 @@
     <name>z-agent-kernel-message (core)</name>
     <description>消息抽象 SPI + 默认实现 (Msg role/content/name/toolCallId/toolCalls)</description>
 
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>
         <license>
@@ -53,10 +47,10 @@
     </scm>
 
     <dependencies>
+        <!-- 兄弟模块的版本由仓库根 dependencyManagement 的 project.version 自钉提供，这里不写版本 -->
         <dependency>
             <groupId>io.github.yuku123</groupId>
             <artifactId>z-agent-kernel-types</artifactId>
-            <version>${revision}</version>
         </dependency>
     </dependencies>
 </project>

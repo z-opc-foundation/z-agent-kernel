@@ -18,12 +18,6 @@
     <name>z-agent-kernel-tui (ui)</name>
     <description>terminal UI 接口 (实现方 z-bot)</description>
 
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>
         <license>

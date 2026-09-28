@@ -18,12 +18,6 @@
     <name>z-agent-kernel-mcp (spi)</name>
     <description>interface McpClient (0 实现, 实现方 z-mcp)</description>
 
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>
         <license>
@@ -56,7 +50,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

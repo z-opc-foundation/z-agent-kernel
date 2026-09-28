@@ -18,12 +18,6 @@
     <name>z-agent-kernel-skill (spi)</name>
     <description>interface Skill (0 实现, 实现方 z-skill)</description>
 
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>
         <license>
@@ -53,16 +47,15 @@
     </scm>
 
     <dependencies>
+        <!-- 兄弟模块的版本由仓库根 dependencyManagement 的 project.version 自钉提供，这里不写版本 -->
         <!-- Skill 接口返回 Map<String, Tool>, 需引入 kernel-tool 包以解析 Tool 类型 -->
         <dependency>
             <groupId>io.github.yuku123</groupId>
             <artifactId>z-agent-kernel-tool</artifactId>
-            <version>${revision}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
