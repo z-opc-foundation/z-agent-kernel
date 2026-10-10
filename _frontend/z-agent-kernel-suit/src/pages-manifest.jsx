@@ -10,7 +10,7 @@ export const menuItems = [
     { key: '/z-agent-kernel/status', label: '服务状态', icon: <MonitorOutlined /> },
 ]
 
-export const routeTable = [
+export const routes = [
     { path: '/z-agent-kernel/home', Component: HomePage },
     { path: '/z-agent-kernel/status', Component: StatusPage },
 ]
