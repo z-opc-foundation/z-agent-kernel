@@ -1,6 +1,7 @@
 package com.zifang.z.agent.kernel.llm.provider;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.zifang.util.json.JsonCursor;
+import com.zifang.util.json.JsonUtil;
 import com.zifang.z.agent.kernel.llm.ChatCompletionsRequest;
 import com.zifang.z.agent.kernel.llm.ChatCompletionsResponse;
 import com.zifang.z.agent.kernel.llm.LlmProvider;
@@ -108,9 +109,9 @@ public class GeminiProvider implements LlmProvider {
      */
     protected ChatCompletionsResponse parseStreamChunk(String line) {
         try {
-            JsonNode root = http.json().readTree(line);
+            JsonCursor root = JsonCursor.of(JsonUtil.parse(line));
             String id = textOrNull(root, "modelVersion");
-            JsonNode u = root.path("usageMetadata");
+            JsonCursor u = root.path("usageMetadata");
             TokenUsage usage = TokenUsage.empty();
             if (u.isObject() && u.size() > 0) {
                 usage = new TokenUsage(
@@ -120,22 +121,22 @@ public class GeminiProvider implements LlmProvider {
             }
             List<ChatCompletionsResponse.Choice> choices = new ArrayList<>();
             String finish = null;
-            JsonNode arr = root.path("candidates");
+            JsonCursor arr = root.path("candidates");
             for (int i = 0; i < arr.size(); i++) {
-                JsonNode c = arr.get(i);
+                JsonCursor c = arr.at(i);
                 StringBuilder textBuf = new StringBuilder();
                 List<ToolCall> tcs = new ArrayList<>();
-                JsonNode parts = c.path("content").path("parts");
+                JsonCursor parts = c.path("content").path("parts");
                 if (parts.isArray()) {
-                    for (JsonNode p : parts) {
-                        JsonNode tp = p.path("text");
-                        if (!tp.isMissingNode() && !tp.isNull()) {
+                    for (JsonCursor p : parts.elements()) {
+                        JsonCursor tp = p.path("text");
+                        if (!tp.isMissing() && !tp.isNull()) {
                             if (textBuf.length() > 0) textBuf.append("\n");
                             textBuf.append(tp.asText());
                         }
-                        JsonNode fc = p.path("functionCall");
-                        if (!fc.isMissingNode() && !fc.isNull()) {
-                            String argsJson = http.json().writeValueAsString(fc.path("args"));
+                        JsonCursor fc = p.path("functionCall");
+                        if (!fc.isMissing() && !fc.isNull()) {
+                            String argsJson = JsonUtil.toJson(fc.path("args").value());
                             tcs.add(new ToolCall(null, textOrNull(fc, "name"), argsJson));
                         }
                     }
@@ -248,31 +249,31 @@ public class GeminiProvider implements LlmProvider {
 
     protected ChatCompletionsResponse parseResponse(String raw) {
         try {
-            JsonNode root = http.json().readTree(raw);
+            JsonCursor root = JsonCursor.of(JsonUtil.parse(raw));
             String id = textOrNull(root, "modelVersion");
-            JsonNode u = root.path("usageMetadata");
+            JsonCursor u = root.path("usageMetadata");
             TokenUsage usage = new TokenUsage(
                     u.path("promptTokenCount").asLong(0L),
                     u.path("candidatesTokenCount").asLong(0L),
                     u.path("totalTokenCount").asLong(0L));
 
             List<ChatCompletionsResponse.Choice> choices = new ArrayList<>();
-            JsonNode arr = root.path("candidates");
+            JsonCursor arr = root.path("candidates");
             for (int i = 0; i < arr.size(); i++) {
-                JsonNode c = arr.get(i);
+                JsonCursor c = arr.at(i);
                 StringBuilder textBuf = new StringBuilder();
                 List<ToolCall> tcs = new ArrayList<>();
-                JsonNode parts = c.path("content").path("parts");
+                JsonCursor parts = c.path("content").path("parts");
                 if (parts.isArray()) {
-                    for (JsonNode p : parts) {
-                        JsonNode tp = p.path("text");
-                        if (!tp.isMissingNode()) {
+                    for (JsonCursor p : parts.elements()) {
+                        JsonCursor tp = p.path("text");
+                        if (!tp.isMissing()) {
                             if (textBuf.length() > 0) textBuf.append("\n");
                             textBuf.append(tp.asText());
                         }
-                        JsonNode fc = p.path("functionCall");
-                        if (!fc.isMissingNode() && !fc.isNull()) {
-                            String argsJson = http.json().writeValueAsString(fc.path("args"));
+                        JsonCursor fc = p.path("functionCall");
+                        if (!fc.isMissing() && !fc.isNull()) {
+                            String argsJson = JsonUtil.toJson(fc.path("args").value());
                             tcs.add(new ToolCall(null, textOrNull(fc, "name"), argsJson));
                         }
                     }
@@ -289,14 +290,14 @@ public class GeminiProvider implements LlmProvider {
     protected Object parseArgsOrEmpty(String json) {
         if (json == null || json.isEmpty()) return Collections.emptyMap();
         try {
-            return http.json().readTree(json);
+            return JsonUtil.toPlainValue(JsonUtil.parse(json));
         } catch (Exception e) {
             return Collections.emptyMap();
         }
     }
 
-    protected static String textOrNull(JsonNode node, String field) {
-        JsonNode n = node.get(field);
-        return n == null || n.isNull() ? null : n.asText();
+    protected static String textOrNull(JsonCursor node, String field) {
+        JsonCursor n = node.path(field);
+        return n.isMissing() || n.isNull() ? null : n.asText();
     }
 }

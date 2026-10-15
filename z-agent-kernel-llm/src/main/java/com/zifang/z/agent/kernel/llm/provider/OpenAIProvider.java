@@ -1,6 +1,7 @@
 package com.zifang.z.agent.kernel.llm.provider;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.zifang.util.json.JsonCursor;
+import com.zifang.util.json.JsonUtil;
 import com.zifang.z.agent.kernel.llm.ChatCompletionsRequest;
 import com.zifang.z.agent.kernel.llm.ChatCompletionsResponse;
 import com.zifang.z.agent.kernel.llm.LlmProvider;
@@ -106,14 +107,14 @@ public class OpenAIProvider implements LlmProvider {
      */
     protected ChatCompletionsResponse parseStreamChunk(String line) {
         try {
-            JsonNode root = http.json().readTree(line);
+            JsonCursor root = JsonCursor.of(JsonUtil.parse(line));
             String id = textOrNull(root, "id");
             String model = textOrNull(root, "model");
-            JsonNode arr = root.path("choices");
+            JsonCursor arr = root.path("choices");
             List<ChatCompletionsResponse.Choice> choices = new ArrayList<>();
             String finish = null;
             TokenUsage usage = TokenUsage.empty();
-            JsonNode usageNode = root.path("usage");
+            JsonCursor usageNode = root.path("usage");
             if (usageNode.isObject() && usageNode.size() > 0) {
                 usage = new TokenUsage(
                         usageNode.path("prompt_tokens").asLong(0L),
@@ -121,17 +122,17 @@ public class OpenAIProvider implements LlmProvider {
                         usageNode.path("total_tokens").asLong(0L));
             }
             for (int i = 0; i < arr.size(); i++) {
-                JsonNode c = arr.get(i);
-                JsonNode delta = c.path("delta");
+                JsonCursor c = arr.at(i);
+                JsonCursor delta = c.path("delta");
                 StringBuilder contentBuf = new StringBuilder();
                 if (delta.has("content") && !delta.path("content").isNull()) {
-                    contentBuf.append(delta.path("content").asText(""));
+                    contentBuf.append(delta.path("content").asText());
                 }
                 List<ToolCall> tcs = new ArrayList<>();
-                JsonNode tcArr = delta.path("tool_calls");
+                JsonCursor tcArr = delta.path("tool_calls");
                 if (tcArr.isArray()) {
-                    for (JsonNode t : tcArr) {
-                        JsonNode fn = t.path("function");
+                    for (JsonCursor t : tcArr.elements()) {
+                        JsonCursor fn = t.path("function");
                         String args = textOrNull(fn, "arguments");
                         tcs.add(new ToolCall(textOrNull(t, "id"), textOrNull(fn, "name"),
                                 args == null ? "{}" : args));
@@ -243,28 +244,28 @@ public class OpenAIProvider implements LlmProvider {
 
     protected ChatCompletionsResponse parseResponse(String raw) {
         try {
-            JsonNode root = http.json().readTree(raw);
+            JsonCursor root = JsonCursor.of(JsonUtil.parse(raw));
             String id = textOrNull(root, "id");
             String model = textOrNull(root, "model");
-            String finish = textOrNull(root.path("choices").path(0), "finish_reason");
+            String finish = textOrNull(root.path("choices").at(0), "finish_reason");
             List<ChatCompletionsResponse.Choice> choices = new ArrayList<>();
-            JsonNode arr = root.path("choices");
+            JsonCursor arr = root.path("choices");
             for (int i = 0; i < arr.size(); i++) {
-                JsonNode c = arr.get(i);
+                JsonCursor c = arr.at(i);
                 int idx = c.path("index").asInt(i);
-                JsonNode msg = c.path("message");
+                JsonCursor msg = c.path("message");
                 String content = textOrNull(msg, "content");
                 List<ToolCall> tcs = new ArrayList<>();
-                JsonNode tcArr = msg.path("tool_calls");
+                JsonCursor tcArr = msg.path("tool_calls");
                 if (tcArr.isArray()) {
-                    for (JsonNode t : tcArr) {
-                        JsonNode fn = t.path("function");
+                    for (JsonCursor t : tcArr.elements()) {
+                        JsonCursor fn = t.path("function");
                         tcs.add(new ToolCall(textOrNull(t, "id"), textOrNull(fn, "name"), textOrNull(fn, "arguments")));
                     }
                 }
                 choices.add(new ChatCompletionsResponse.Choice(idx, content, tcs, textOrNull(c, "finish_reason")));
             }
-            JsonNode u = root.path("usage");
+            JsonCursor u = root.path("usage");
             TokenUsage usage = new TokenUsage(
                     u.path("prompt_tokens").asLong(0L),
                     u.path("completion_tokens").asLong(0L),
@@ -275,8 +276,8 @@ public class OpenAIProvider implements LlmProvider {
         }
     }
 
-    protected static String textOrNull(JsonNode node, String field) {
-        JsonNode n = node.get(field);
-        return n == null || n.isNull() ? null : n.asText();
+    protected static String textOrNull(JsonCursor node, String field) {
+        JsonCursor n = node.path(field);
+        return n.isMissing() || n.isNull() ? null : n.asText();
     }
 }

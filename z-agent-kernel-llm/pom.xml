@@ -71,6 +71,12 @@
             <artifactId>okhttp-sse</artifactId>
         </dependency>
 
+        <!-- 自研 JSON: provider 的响应树导航走 JsonCursor, 版本由根 dependencyManagement 给 -->
+        <dependency>
+            <groupId>io.github.yuku123</groupId>
+            <artifactId>z-util-parser-json</artifactId>
+        </dependency>
+
         <!-- JSON -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

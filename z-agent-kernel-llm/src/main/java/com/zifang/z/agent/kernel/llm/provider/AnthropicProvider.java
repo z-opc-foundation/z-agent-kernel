@@ -1,6 +1,7 @@
 package com.zifang.z.agent.kernel.llm.provider;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.zifang.util.json.JsonCursor;
+import com.zifang.util.json.JsonUtil;
 import com.zifang.z.agent.kernel.llm.ChatCompletionsRequest;
 import com.zifang.z.agent.kernel.llm.ChatCompletionsResponse;
 import com.zifang.z.agent.kernel.llm.LlmProvider;
@@ -158,12 +159,12 @@ public class AnthropicProvider implements LlmProvider {
      */
     protected ChatCompletionsResponse parseAnthropicEvent(String event, String data) {
         try {
-            JsonNode root = http.json().readTree(data);
+            JsonCursor root = JsonCursor.of(JsonUtil.parse(data));
             switch (event) {
                 case "message_start": {
                     String id = textOrNull(root.path("message"), "id");
                     String model = textOrNull(root.path("message"), "model");
-                    JsonNode u = root.path("message").path("usage");
+                    JsonCursor u = root.path("message").path("usage");
                     TokenUsage usage = new TokenUsage(u.path("input_tokens").asLong(0L),
                             u.path("output_tokens").asLong(0L),
                             u.path("input_tokens").asLong(0L) + u.path("output_tokens").asLong(0L));
@@ -174,7 +175,7 @@ public class AnthropicProvider implements LlmProvider {
                 case "content_block_delta": {
                     String id = lastMessageId;
                     String model = lastMessageModel;
-                    JsonNode delta = root.path("delta");
+                    JsonCursor delta = root.path("delta");
                     StringBuilder textBuf = new StringBuilder();
                     if ("text_delta".equals(textOrNull(delta, "type"))) {
                         textBuf.append(textOrNull(delta, "text"));
@@ -187,7 +188,7 @@ public class AnthropicProvider implements LlmProvider {
                 }
                 case "message_delta": {
                     String stopReason = textOrNull(root.path("delta"), "stop_reason");
-                    JsonNode u = root.path("usage");
+                    JsonCursor u = root.path("usage");
                     TokenUsage usage = new TokenUsage(u.path("input_tokens").asLong(0L),
                             u.path("output_tokens").asLong(0L),
                             u.path("input_tokens").asLong(0L) + u.path("output_tokens").asLong(0L));
@@ -313,7 +314,7 @@ public class AnthropicProvider implements LlmProvider {
 
     protected ChatCompletionsResponse parseResponse(String raw) {
         try {
-            JsonNode root = http.json().readTree(raw);
+            JsonCursor root = JsonCursor.of(JsonUtil.parse(raw));
             String id = textOrNull(root, "id");
             String model = textOrNull(root, "model");
             String stopReason = textOrNull(root, "stop_reason");
@@ -321,21 +322,21 @@ public class AnthropicProvider implements LlmProvider {
             // content blocks → 拼出 content 字符串 + 提取 tool_use
             StringBuilder textBuf = new StringBuilder();
             List<ToolCall> tcs = new ArrayList<>();
-            JsonNode blocks = root.path("content");
+            JsonCursor blocks = root.path("content");
             if (blocks.isArray()) {
-                for (JsonNode b : blocks) {
+                for (JsonCursor b : blocks.elements()) {
                     String type = textOrNull(b, "type");
                     if ("text".equals(type)) {
                         if (textBuf.length() > 0) textBuf.append("\n");
                         textBuf.append(textOrNull(b, "text"));
                     } else if ("tool_use".equals(type)) {
-                        String argsJson = http.json().writeValueAsString(b.path("input"));
+                        String argsJson = JsonUtil.toJson(b.path("input").value());
                         tcs.add(new ToolCall(textOrNull(b, "id"), textOrNull(b, "name"), argsJson));
                     }
                 }
             }
 
-            JsonNode u = root.path("usage");
+            JsonCursor u = root.path("usage");
             TokenUsage usage = new TokenUsage(
                     u.path("input_tokens").asLong(0L),
                     u.path("output_tokens").asLong(0L),
@@ -352,14 +353,14 @@ public class AnthropicProvider implements LlmProvider {
     protected Object parseArgsOrEmpty(String json) {
         if (json == null || json.isEmpty()) return Collections.emptyMap();
         try {
-            return http.json().readTree(json);
+            return JsonUtil.toPlainValue(JsonUtil.parse(json));
         } catch (Exception e) {
             return Collections.emptyMap();
         }
     }
 
-    protected static String textOrNull(JsonNode node, String field) {
-        JsonNode n = node.get(field);
-        return n == null || n.isNull() ? null : n.asText();
+    protected static String textOrNull(JsonCursor node, String field) {
+        JsonCursor n = node.path(field);
+        return n.isMissing() || n.isNull() ? null : n.asText();
     }
 }

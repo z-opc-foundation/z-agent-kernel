@@ -1,6 +1,7 @@
 package com.zifang.z.agent.kernel.llm.provider;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.zifang.util.json.JsonCursor;
+import com.zifang.util.json.JsonUtil;
 import com.zifang.z.agent.kernel.llm.ChatCompletionsRequest;
 import com.zifang.z.agent.kernel.llm.ChatCompletionsResponse;
 import com.zifang.z.agent.kernel.llm.LlmProvider;
@@ -119,10 +120,10 @@ public class DashScopeProvider implements LlmProvider {
      */
     protected ChatCompletionsResponse parseStreamChunk(String line) {
         try {
-            JsonNode root = http.json().readTree(line);
+            JsonCursor root = JsonCursor.of(JsonUtil.parse(line));
             String id = textOrNull(root, "request_id");
-            JsonNode output = root.path("output");
-            JsonNode usage = root.path("usage");
+            JsonCursor output = root.path("output");
+            JsonCursor usage = root.path("usage");
             TokenUsage tu = TokenUsage.empty();
             if (usage.isObject() && usage.size() > 0) {
                 tu = new TokenUsage(
@@ -132,19 +133,19 @@ public class DashScopeProvider implements LlmProvider {
             }
             List<ChatCompletionsResponse.Choice> choices = new ArrayList<>();
             String finish = null;
-            JsonNode arr = output.path("choices");
+            JsonCursor arr = output.path("choices");
             for (int i = 0; i < arr.size(); i++) {
-                JsonNode c = arr.get(i);
-                JsonNode msg = c.path("message");
+                JsonCursor c = arr.at(i);
+                JsonCursor msg = c.path("message");
                 String content = textOrNull(msg, "content");
                 if (content == null) content = "";
                 String fr = textOrNull(c, "finish_reason");
                 if (fr != null) finish = fr;
                 List<ToolCall> tcs = new ArrayList<>();
-                JsonNode tcArr = msg.path("tool_calls");
+                JsonCursor tcArr = msg.path("tool_calls");
                 if (tcArr.isArray()) {
-                    for (JsonNode t : tcArr) {
-                        JsonNode fn = t.path("function");
+                    for (JsonCursor t : tcArr.elements()) {
+                        JsonCursor fn = t.path("function");
                         tcs.add(new ToolCall(textOrNull(t, "id"), textOrNull(fn, "name"), textOrNull(fn, "arguments")));
                     }
                 }
@@ -249,29 +250,29 @@ public class DashScopeProvider implements LlmProvider {
 
     protected ChatCompletionsResponse parseResponse(String raw) {
         try {
-            JsonNode root = http.json().readTree(raw);
+            JsonCursor root = JsonCursor.of(JsonUtil.parse(raw));
             String id = textOrNull(root.path("request_id"), null);
             if (id == null) id = textOrNull(root, "request_id");
-            JsonNode output = root.path("output");
-            JsonNode usage = root.path("usage");
+            JsonCursor output = root.path("output");
+            JsonCursor usage = root.path("usage");
             TokenUsage tu = new TokenUsage(
                     usage.path("input_tokens").asLong(0L),
                     usage.path("output_tokens").asLong(0L),
                     usage.path("total_tokens").asLong(0L));
 
             List<ChatCompletionsResponse.Choice> choices = new ArrayList<>();
-            JsonNode arr = output.path("choices");
+            JsonCursor arr = output.path("choices");
             if (arr.isArray()) {
                 for (int i = 0; i < arr.size(); i++) {
-                    JsonNode c = arr.get(i);
-                    JsonNode msg = c.path("message");
+                    JsonCursor c = arr.at(i);
+                    JsonCursor msg = c.path("message");
                     String content = textOrNull(msg, "content");
                     String finish = textOrNull(c, "finish_reason");
                     List<ToolCall> tcs = new ArrayList<>();
-                    JsonNode tcArr = msg.path("tool_calls");
+                    JsonCursor tcArr = msg.path("tool_calls");
                     if (tcArr.isArray()) {
-                        for (JsonNode t : tcArr) {
-                            JsonNode fn = t.path("function");
+                        for (JsonCursor t : tcArr.elements()) {
+                            JsonCursor fn = t.path("function");
                             tcs.add(new ToolCall(textOrNull(t, "id"), textOrNull(fn, "name"), textOrNull(fn, "arguments")));
                         }
                     }
@@ -287,11 +288,11 @@ public class DashScopeProvider implements LlmProvider {
         }
     }
 
-    protected static String textOrNull(JsonNode node, String field) {
+    protected static String textOrNull(JsonCursor node, String field) {
         if (field == null) {
-            return node.isMissingNode() || node.isNull() ? null : node.asText();
+            return node.isMissing() || node.isNull() ? null : node.asText();
         }
-        JsonNode n = node.get(field);
-        return n == null || n.isNull() ? null : n.asText();
+        JsonCursor n = node.path(field);
+        return n.isMissing() || n.isNull() ? null : n.asText();
     }
 }
