@@ -93,7 +93,7 @@ public class AnthropicProvider implements LlmProvider {
         // 这里走原始 BufferedReader 逐行解析 event+data.
         Map<String, Object> body = buildRequestBody(request, true);
         try {
-            String bodyJson = http.json().writeValueAsString(body);
+            String bodyJson = http.toJson(body);
             okhttp3.Request httpReq = new okhttp3.Request.Builder()
                     .url(apiBase + "/v1/messages")
                     .headers(authHeaders())

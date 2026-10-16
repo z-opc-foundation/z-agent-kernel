@@ -121,25 +121,24 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- z-util 抬到 1.2.2(去 Jackson 那版): 树导航改用自研 JsonUtil/JsonCursor,
-                 不再靠 ObjectMapper.readTree. 继承来的 z-boot-fleet DM 把 z-util 压在 1.0.22,
+            <!-- z-util 抬到 1.2.4(去 Jackson 那版): 本仓已零 Jackson, JSON 全走自研 JsonUtil/JsonCursor.
                  而 toPlainValue/JsonCursor 是 1.1.1 起的 API, 用旧版会编译不过.
                  ⚠ 三格必须同笔钉: dependencyManagement 对**传递依赖**同样生效, 只钉 parser-json
                  会被地板把 dsl-kernel 压回 1.0.22, 运行期 parser 与 dsl 两套字节码互认会裂开. -->
             <dependency>
                 <groupId>io.github.yuku123</groupId>
                 <artifactId>z-util-core</artifactId>
-                <version>1.2.2</version>
+                <version>1.2.4</version>
             </dependency>
             <dependency>
                 <groupId>io.github.yuku123</groupId>
                 <artifactId>z-util-parser-json</artifactId>
-                <version>1.2.2</version>
+                <version>1.2.4</version>
             </dependency>
             <dependency>
                 <groupId>io.github.yuku123</groupId>
                 <artifactId>z-util-dsl-kernel</artifactId>
-                <version>1.2.2</version>
+                <version>1.2.4</version>
             </dependency>
             <!-- 自钉本仓 26 个 reactor 坐标 = ${project.version}. 这一格不是装饰:
                  z-boot-fleet 里 z-agent-kernel-* 槽位钉的是 repo1 上的 **0.1.1**(0.2.0/0.2.1 实测 404),

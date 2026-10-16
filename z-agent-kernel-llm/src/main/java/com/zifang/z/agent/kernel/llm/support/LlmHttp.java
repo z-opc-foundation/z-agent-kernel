@@ -1,6 +1,6 @@
 package com.zifang.z.agent.kernel.llm.support;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zifang.util.json.JsonUtil;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -27,7 +27,6 @@ public class LlmHttp {
     public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
     private final OkHttpClient client;
-    private final ObjectMapper json;
 
     public LlmHttp() {
         this(30, 300, 60);
@@ -39,20 +38,19 @@ public class LlmHttp {
                 .readTimeout(readTimeoutSec, TimeUnit.SECONDS)
                 .writeTimeout(writeTimeoutSec, TimeUnit.SECONDS)
                 .build();
-        this.json = new ObjectMapper();
     }
 
     public OkHttpClient client() {
         return client;
     }
 
-    public ObjectMapper json() {
-        return json;
+    public String toJson(Object body) {
+        return JsonUtil.toJson(body);
     }
 
     public String postJson(String url, okhttp3.Headers headers, Object body) {
         try {
-            String bodyJson = json.writeValueAsString(body);
+            String bodyJson = toJson(body);
             Request req = new Request.Builder()
                     .url(url)
                     .headers(headers)
@@ -83,7 +81,7 @@ public class LlmHttp {
                                Consumer<Throwable> onError,
                                Runnable onComplete) {
         try {
-            String bodyJson = json.writeValueAsString(body);
+            String bodyJson = toJson(body);
             Request req = new Request.Builder()
                     .url(url)
                     .headers(headers)
@@ -131,8 +129,8 @@ public class LlmHttp {
 
     public <T> T parseJson(String raw, Class<T> type) {
         try {
-            return json.readValue(raw, type);
-        } catch (IOException e) {
+            return JsonUtil.fromJson(raw, type);
+        } catch (RuntimeException e) {
             throw new LlmException("parseJson", "Failed to parse " + type.getSimpleName(), e);
         }
     }
