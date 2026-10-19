@@ -39,6 +39,18 @@
             </roles>
         </developer>
     </developers>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.yuku123</groupId>
+            <artifactId>z-agent-kernel-agent</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.yuku123</groupId>
+            <artifactId>z-agent-kernel-llm</artifactId>
+        </dependency>
+    </dependencies>
+
     <scm>
         <connection>scm:git:https://github.com/z-opc-foundation/z-agent-kernel.git</connection>
         <developerConnection>scm:ssh://git@github.com/z-opc-foundation/z-agent-kernel.git</developerConnection>
