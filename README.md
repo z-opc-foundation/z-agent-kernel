@@ -9,7 +9,7 @@ provider、stdio MCP 传输）一次性收口，上层只声明自己用到的�
 
 本仓**不是应用**：全仓无 `src/main/resources`、无 `application*.yml`、无端口，
 `@RequestMapping` / `@RestController` / `@SpringBootApplication` 实测 **0 命中**
-（复算：`rg --no-ignore -c '@RequestMapping|@RestController|@GetMapping|@PostMapping' --glob '*.java' .`）。
+（复算：`rg --no-ignore -c '@RequestMapping|@RestController|@GetMapping|@PostMapping|@SpringBootApplication' --glob '*.java' .`）。
 
 ---
 
@@ -100,7 +100,7 @@ z-agent-kernel/
 ```
 
 规模实测：main `105` 个 `.java`（= 25 `package-info` + 29 `interface` + 49 `class` + 2 `enum`）共
-**6540** 行；test `11` 个 `.java` 共 **1716** 行。**没有任何模块设 `maven.deploy.skip`**（实测 grep 0 命中），
+**6540** 行；test 侧 **2026-10-20 快照**：`11` 个 `.java` 共 **1716** 行（不含本仓 README 自守卫）。**没有任何模块设 `maven.deploy.skip`**（实测 grep 0 命中），
 所以 26 个坐标全部可发布 —— 这点与 z-ctc 的"演示应用永不上传"模型不同。
 
 ### 运行时契约：代码真正支持的 vs 只写了接口的
@@ -133,8 +133,11 @@ MemoryStore|SessionStore|McpClient|CredentialStore|Skill|Tool` 的类分布为
    `InterruptFlag.AgentInterruptedException`）。
    （`app` 已不再是空壳：0.2.3 起有 `LlmAgent` 实现 `Agent`。）
 2. **75 支 `@Test` 只落在 7 个模块**：`tool` 28 / `agent` 19 / `app` 11 / `mcp` 9 / `skill` 4 /
-   `credential` 2 / `state` 2；其余 **18 个模块零测试**，包括 14 文件的 `llm`（7 个 provider 一支没测）。
-   复算：`for m in z-agent-kernel-*; do printf "%-14s %s\n" "${m#z-agent-kernel-}" "$(rg --no-ignore -c '@Test' "$m" 2>/dev/null | awk -F: '{s+=$2} END {print s+0}')"; done`
+   `credential` 2 / `state` 2；其余 **18 个模块零测试**（`classifier` / `console` / `embedding` / `event` /
+   `exception` / `formatter` / `llm` / `memory` / `message` / `middleware` / `permission` / `pipeline` /
+   `rag` / `realtime` / `tts` / `tui` / `types` / `workspace`），包括 14 文件的 `llm`（7 个 provider 一支没测）。
+   复算（口径排除本仓 README 自守卫 `ReadmeClaimsTest.java`，否则 `tool` 会被自己数进去）：
+   `for m in z-agent-kernel-*; do printf "%-14s %s\n" "${m#z-agent-kernel-}" "$(rg --no-ignore -c '@Test' -g '!ReadmeClaimsTest.java' "$m" 2>/dev/null | awk -F: '{s+=$2} END {print s+0}')"; done`
 3. **12 个模块在 foundation 内除版本表外没有任何消费者 pom 引用**：
    `app` / `classifier` / `console` / `embedding` / `exception` / `permission` / `pipeline` /
    `rag` / `realtime` / `state` / `tts` / `tui`。
@@ -164,9 +167,9 @@ MemoryStore|SessionStore|McpClient|CredentialStore|Skill|Tool` 的类分布为
 | 语言 / 运行时 | Java 8（口径由 `z-boot-parent:1.1.0` 下发，本仓不重复声明） |
 | 构建 | Maven · CI-friendly `${revision}` + `flatten-maven-plugin:1.7.3`（`updatePomFile=true`, `oss`） |
 | HTTP / 流式 | `com.squareup.okhttp3:okhttp` + `okhttp-sse` 4.12.0 —— **仅 `llm` 模块使用** |
-| JSON | `jackson-databind` / `jackson-core` 2.18.6 —— **仅 `llm` 模块使用** |
+| JSON | 走 `z-util-parser-json`（仅 `llm` 模块声明）—— **全仓零 Jackson 坐标**：没有任何 pom 声明该坐标，源码零 `com.fasterxml` import；只有根 pom 与 `llm/pom.xml` 的注释里提过版本号 |
 | Kotlin 兜底 | 根 DM 把 `kotlin-stdlib{,-common,-jdk7,-jdk8}` 钉 `1.9.21`，拒绝父链 `spring-boot-dependencies:2.7.18` 带来的 1.6.21 静默降级 |
-| 测试 | JUnit 4（`org.junit.Test`，**11** 个测试类）+ `TemporaryFolder` 规则（2 处） |
+| 测试 | JUnit 4（`org.junit.Test`）为主、JUnit 5（`org.junit.jupiter.api.Test`）并存 —— 根 POM 全局 test 依赖带 `junit-jupiter` + `junit-vintage-engine`，全模块可用；`TemporaryFolder` 规则 **1** 处（`skill/MarkdownSkillLoaderTest`） |
 | 未使用 | Spring / Spring Boot、MyBatis、JDBC、日志框架 —— `java.sql|jdbc|DataSource|sqlite` 命中 **0 文件** |
 
 ---
@@ -177,7 +180,7 @@ MemoryStore|SessionStore|McpClient|CredentialStore|Skill|Tool` 的类分布为
 
 ```bash
 mvn clean install -DskipTests   # 全 reactor：聚合根 + 25 模块
-mvn test                        # 75 支测试，纯 JVM
+mvn test                        # 75 支测试（复算口径排除本仓 README 自守卫），纯 JVM
 ```
 
 解析顺序要求能拿到 `io.github.yuku123:z-boot-parent:1.1.0`（实测 repo1 200）。模块 POM 的
@@ -228,7 +231,7 @@ LlmProvider provider = new OpenAIProvider(apiKeyFromStore, apiBase);  // key 只
 | `MemoryStore` / `MemoryProvider` | memory | `getScope` / `save` / `load(id)`→`Optional` / `search(query, limit)` / `delete` / `listRecentMessages`；Provider 侧 `name`/`prefetch`/`sync`/`save` | 本仓给内存版 |
 | `SessionStore` | state | `createSession` / `appendMessage` / `messages` / `updateSession` / `session` / `listSessions` / `search(query, limit)` / `deleteSession` / `close` | z-bot（SQLite+WAL） |
 | `State` / `StateManager` | state | `getScope`/`get`/`set`/`delete`/`snapshot()`；`newState(scope)`/`snapshot(State)`/`restore(StateSnapshot)` | 上层 |
-| `Pipeline` / `PipelineStep` | pipeline | `execute(PipelineContext)` → `PipelineResult`(含 `StepTrace`)；步骤返回 `StepResult(Status, output, nextStepName)` | 上层编排 |
+| `Pipeline` / `PipelineStep` | pipeline | `execute(PipelineContext)` → `PipelineResult`(含 `StepTrace`)；`PipelineStep.execute` → `StepResult(Status, output, nextStepName)` | 上层编排 |
 | `Workspace` | workspace | `getScope` / `read` / `write` / `append` / `exists` / `list` / `delete` / `exec(cmd, args, timeoutMs)` → `ExecResult` | sandbox 侧 |
 | `RagPipeline` / `Embedding` | rag / embedding | `retrieve(query, topK)` → `List<Document>` / `buildContext(docs)`；`embed`/`embedBatch`/`dim`/`model` | z-kb / z-vector |
 | `McpClient` / `McpTransport` | mcp | `connect` / `listTools` / `call` / `disconnect` / `isConnected`；传输层 `open` / `request(json)` / `close` / `isOpen` | z-mcp；本仓给 stdio 版 |
@@ -244,14 +247,14 @@ LlmProvider provider = new OpenAIProvider(apiKeyFromStore, apiBase);  // key 只
 ## 🧪 测试
 
 ```bash
-mvn -o test                     # 75 支；JDK 8 编译产物，不起端口
+mvn -o test                     # 75 支（复算口径排除本仓 README 自守卫）；JDK 8 编译产物，不起端口
 ```
 
-- 分布：`tool` 28 / `agent` 19 / `app` 11 / `mcp` 9 / `skill` 4 / `credential` 2 / `state` 2。
+- 分布（复算口径排除本仓 README 自守卫 `ReadmeClaimsTest.java`）：`tool` 28 / `agent` 19 / `app` 11 / `mcp` 9 / `skill` 4 / `credential` 2 / `state` 2，合计 75 支。
 - **唯一碰操作系统的是 `mcp` 模块那 9 支**（`StdioMcpTransportTest` 3 支 + `StdioMcpTransportTimeoutTest` 6 支）：
   它们拿 `/bin/cat` 当"回声 MCP server"起子进程（`new StdioMcpTransport(Arrays.asList("/bin/cat"))`）。
   ⇒ 这 9 支在无 POSIX shell 的环境下会红，不是网络红；`llm` 的 7 个 provider 完全不进测试，因此本仓测试**不会发出任何外网请求**。
-- 18 个模块零测试（含 `pipeline` / `rag` / `permission` / `embedding` 等纯接口模块，接口无逻辑可测）。
+- **18** 个模块零测试（含 `pipeline` / `rag` / `permission` / `embedding` 等纯接口模块，接口无逻辑可测）；完整名单见上方「哪些"面"是有名字没东西的」第 2 条。
 
 ---
 
@@ -272,7 +275,7 @@ mvn -P central deploy           # source jar + javadoc jar + gpg 签名 + centra
 
 ## 🐞 已知未收口的缺陷（读过代码确认在，不是测出来的红）
 
-- `StdioMcpTransport.request()` 的响应配对仍用 `line.trim().contains("\"id\":" + id)`（`:107`），
+- `StdioMcpTransport.request()` 的响应配对仍用 `trimmed.contains("\"id\":" + id)`（`trimmed = line.trim()`，`:107`），
   server 回**非紧凑 JSON**（`"id": 7` 带空格）就永不命中 —— 读线程会一直跳过那一行。
   复算：`sed -n '92,137p' z-agent-kernel-mcp/src/main/java/com/zifang/z/agent/kernel/mcp/StdioMcpTransport.java`
 - 旧缺陷里的"超时管不住、会永久挂住"那一半**已修复**：读 stdout 已搬到独立 daemon 线程，
