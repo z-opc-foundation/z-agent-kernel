@@ -91,6 +91,12 @@ public class GeminiProvider implements LlmProvider {
 
     @Override
     public void streamChat(ChatCompletionsRequest request, Consumer<ChatCompletionsResponse> onChunk, Consumer<Throwable> onError) {
+        streamChat(request, onChunk, onError, () -> { });
+    }
+
+    @Override
+    public void streamChat(ChatCompletionsRequest request, Consumer<ChatCompletionsResponse> onChunk,
+                           Consumer<Throwable> onError, Runnable onComplete) {
         Map<String, Object> body = buildRequestBody(request, true);
         // ?alt=sse 让 Gemini 返回标准 SSE 格式 (默认是 JSONL)
         String url = apiBase + "/v1beta/models/" + request.getModel() + ":streamGenerateContent?alt=sse";
@@ -100,7 +106,7 @@ public class GeminiProvider implements LlmProvider {
                     if (chunk != null) onChunk.accept(chunk);
                 },
                 onError,
-                null);
+                onComplete);
     }
 
     /**

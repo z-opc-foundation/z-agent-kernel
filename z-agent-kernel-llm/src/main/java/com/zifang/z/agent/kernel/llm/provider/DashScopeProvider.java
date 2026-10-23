@@ -104,6 +104,12 @@ public class DashScopeProvider implements LlmProvider {
 
     @Override
     public void streamChat(ChatCompletionsRequest request, Consumer<ChatCompletionsResponse> onChunk, Consumer<Throwable> onError) {
+        streamChat(request, onChunk, onError, () -> { });
+    }
+
+    @Override
+    public void streamChat(ChatCompletionsRequest request, Consumer<ChatCompletionsResponse> onChunk,
+                           Consumer<Throwable> onError, Runnable onComplete) {
         Map<String, Object> body = buildRequestBody(request, true);
         http.postJsonStream(apiBase + "/services/aigc/text-generation/generation", authHeaders(), body,
                 line -> {
@@ -111,7 +117,7 @@ public class DashScopeProvider implements LlmProvider {
                     if (chunk != null) onChunk.accept(chunk);
                 },
                 onError,
-                null);
+                onComplete);
     }
 
     /**

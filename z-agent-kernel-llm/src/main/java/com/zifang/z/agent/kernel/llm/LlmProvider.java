@@ -26,6 +26,23 @@ public interface LlmProvider {
 
     void streamChat(ChatCompletionsRequest request, Consumer<ChatCompletionsResponse> onChunk, Consumer<Throwable> onError);
 
+    /**
+     * 带结束信号的流式 chat —— <b>流式实现默认是异步的</b>（SSE 客户端在另一个线程上吐 chunk），
+     * 所以调用方不能凭"方法返回了"判断流结束：必须等 {@code onComplete} 或 {@code onError}。
+     *
+     * <p>三参版对同步实现仍然正确（方法返回即流已结束），故默认实现直接转调并立刻收尾。
+     * 走 SSE 的 provider 必须覆写本方法，把结束信号透传给底层 HTTP 客户端，
+     * 否则上层会在零 chunk 时就宣布成功并关闭客户端流（真实故障：网关对 MiniMax
+     * 的流式只回 {@code data: [DONE]}，同步却完全正常）。
+     */
+    default void streamChat(ChatCompletionsRequest request,
+                             Consumer<ChatCompletionsResponse> onChunk,
+                             Consumer<Throwable> onError,
+                             Runnable onComplete) {
+        streamChat(request, onChunk, onError);
+        onComplete.run();
+    }
+
     default Map<String, Object> providerParams() {
         return java.util.Collections.emptyMap();
     }
