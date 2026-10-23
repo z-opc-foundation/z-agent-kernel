@@ -102,7 +102,7 @@
 
     <properties>
         <!-- 项目自身版本 (CI-friendly versions 根, 发版改这一处即可) -->
-        <revision>0.2.3</revision>
+        <revision>0.2.4</revision>
 
         <!-- 删掉的键(父链同面值下发, 本仓不再重复声明): maven.compiler.source/target=8、
              project.build.sourceEncoding=UTF-8、flatten-maven-plugin.version=1.7.3
