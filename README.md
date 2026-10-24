@@ -1,6 +1,6 @@
 # z-agent-kernel
 
-> Agent 框架基座 —— 25 个 jar 模块的 SPI + 轻量默认实现：纯 POJO、不带 Spring、不建库表、不起服务。
+> Agent 框架基座 —— 26 个 jar 模块的 SPI + 轻量默认实现：纯 POJO、不带 Spring、不建库表、不起服务。
 
 它解决的是"上层各写一套 agent 抽象"的问题。`z-llm` / `z-mcp` / `z-skill` / `z-bot` / `z-agent` /
 `z-agent-proxy` / `z-opc` 需要的不是同一个 agent 运行时，而是同一套**消息、工具、记忆、provider、
@@ -17,15 +17,15 @@ provider、stdio MCP 传输）一次性收口，上层只声明自己用到的�
 
 | 字段 | 值 |
 |------|-----|
-| **仓库** | `z-agent-kernel`（`packaging=pom` 聚合根 + 25 个 `jar` 子模块） |
+| **仓库** | `z-agent-kernel`（`packaging=pom` 聚合根 + 26 个 `jar` 子模块） |
 | **Maven 坐标** | `io.github.yuku123:z-agent-kernel:${revision}` |
-| **当前版本** | `0.2.3`（根 POM `<revision>`，CI-friendly + flatten-maven-plugin 1.7.3，`flattenMode=oss`） |
+| **当前版本** | `0.2.4`（根 POM `<revision>`，CI-friendly + flatten-maven-plugin 1.7.3，`flattenMode=oss`） |
 | **父项目** | `io.github.yuku123:z-boot-parent:1.1.0`（`<relativePath/>` 留空，parent 在 repo1 不在磁盘；实测 200） |
 | **父链下发** | `z-boot-parent:1.1.0` 的自身 parent 是 `z-boot:1.0.19`；**1.1.0 已不再 import `z-boot-fleet` / `z-boot-dependencies`**（那两个仓已退役），版本表直接由 parent 自身属性下发：`<z-agent-kernel.version>=0.2.1`、`<java.version>=1.8`、`<maven.compiler.source/target>=8`、`<spring-boot.version>=2.7.18`、`<jackson.version>=2.18.6`、`<okhttp.version>=4.12.0` |
-| **Maven Central** | **`0.2.3` 已发布**：2026-10-20 逐个实测 26 个坐标（聚合根 + 25 模块）的 `maven-metadata.xml`，**每一个**都列出 `0.1.0` / `0.1.1` / `0.2.1` / `0.2.2` / `0.2.3`；**`0.2.0` 从未发布**（全坐标实测 404） |
+| **Maven Central** | **`0.2.3` 已发布**：2026-10-20 逐个实测 26 个坐标（聚合根 + 25 模块）的 `maven-metadata.xml`，**每一个**都列出 `0.1.0` / `0.1.1` / `0.2.1` / `0.2.2` / `0.2.3`；**`0.2.0` 从未发布**（全坐标实测 404）。**`0.2.4` 为本地领先版（新增 `asr` 坐标，共 27 个），尚未发布** |
 | **默认端口** | 无（库仓，不启动进程） |
 | **运行口径** | Java 8（`java.version=1.8`、`maven.compiler.source/target=8` 由父链下发）· Spring Boot **未使用**（`org.springframework` 命中 **0 个文件**） |
-| **最近更新** | 2026-10-19（仓内最后一次提交 `7cde4c4` "版本 0.2.2 → 0.2.3（承载群聊编排与 LlmAgent）"） |
+| **最近更新** | 2026-10-23（补齐语音链路契约：新增 `asr` 模块、`Realtime` 加 `endTurn()`/`partial`/`audioFormat`、`Tts` 加 `synthesizeStream`/`openStream`、`types` 加 `AudioFormat`） |
 
 ---
 
@@ -48,6 +48,10 @@ provider、stdio MCP 传输）一次性收口，上层只声明自己用到的�
 | MCP stdio 客户端 | `mcp`：`StdioMcpTransport` / `McpTransport` / `McpClient` | `ProcessBuilder` 拉起 server 子进程，newline-delimited JSON-RPC，`protocolVersion=2024-11-05` 握手，stderr 由守护线程丢弃 |
 | 凭据轮换 | `credential`：`CredentialPool` / `CredentialStore` | 池只做"多把 key 按健康度挑选 + 失败计数 + 冷却"；SPI 实现方是 z-mist |
 | 默认 LLM agent 实现（0.2.3 新增） | `app`：`LlmAgent` | `implements Agent`，构造时绑 `LlmProvider` + `model` + `systemPrompt` + `List<Tool>`；`of(name, provider, model)` 便捷构造；`DEFAULT_MAX_TOKENS=128000` |
+| 语音链路契约（0.2.4 新增） | `asr`：`Asr` / `realtime`：`Realtime` / `tts`：`Tts` / `types`：`AudioFormat` | 流式识别 `AsrSession.sendAudio`/`endTurn`，结果分 `AsrEvent.PARTIAL`/`FINAL`；实时会话 `RealtimeSession.endTurn`/`interrupt`，事件带 `partial` 与 `audioFormat`；语音合成 `synthesizeStream`（一段文本出流）与 `openStream`（增量喂文本，电话级延迟的关键） |
+| 多厂商故障切换组合（0.2.4 新增） | `llm`：`FailoverLlmProvider` / `asr`：`FailoverAsr` / `tts`：`FailoverTts` | 链式 provider：**未产出内容才切**（LLM 未吐字 / TTS 未吐音频），已产出则直接报错（避免两家的半句话拼在一起）；连续失败 2 次熔断 30 秒、成功一次即清零；`entry(name, provider, model)` 可按家覆盖 model id |
+| 零模型规则应答（0.2.4 新增） | `llm`：`RuleBasedLlmProvider` | **不调任何大模型**：关键词命中即给预设话术，都不命中给 fallback；流式按**中文句读**切块逐块吐（半角+全角标点都切），让语音回路在"没有模型"时也能被完整验证 |
+| 音频字节工具（0.2.4 新增） | `types`：`AudioBytes` / `AudioFormat` | 裸 PCM16 → 16bit WAV 容器（头字段逐个对齐）、音频 → `data:{MIME};base64,` data URL（小米 MiMo 要的形状）、纯 base64、UTF-8 文本 |
 
 ### 关于凭据（只写名字，不写值）
 
@@ -62,13 +66,13 @@ provider、stdio MCP 传输）一次性收口，上层只声明自己用到的�
 
 ## 🏗️ 项目结构
 
-`<modules>` 共 **25** 条，与磁盘目录**逐字一致**（复算：
+`<modules>` 共 **26** 条，与磁盘目录**逐字一致**（复算：
 `diff <(rg -o '<module>[^<]+</module>' pom.xml | sed 's/.*<module>//;s/<.*//' | sort) <(ls -d z-agent-kernel-* | sort)` ⇒ 空）。
 
 ```
 z-agent-kernel/
-├── pom.xml                    # 聚合根：25 个 <module> + 26 条 reactor 自钉 DM + central profile
-├── z-agent-kernel-types/      # MessageRole（5 值）· TokenUsage —— 全仓共享基础类型
+├── pom.xml                    # 聚合根：26 个 <module> + 27 条 reactor 自钉 DM + central profile
+├── z-agent-kernel-types/      # MessageRole（5 值）· TokenUsage · AudioFormat —— 全仓共享基础类型
 ├── z-agent-kernel-exception/  # 仅 package-info，0 类型（各模块异常实际是自己的内嵌类）
 ├── z-agent-kernel-classifier/ # 仅 package-info，0 类型
 ├── z-agent-kernel-message/    # Msg · ToolCall · MessageType —— 内部统一消息
@@ -88,8 +92,9 @@ z-agent-kernel/
 ├── z-agent-kernel-formatter/  # Formatter<T>(Direction 枚举) —— 只有接口
 ├── z-agent-kernel-embedding/  # Embedding SPI（实现方 z-vector）
 ├── z-agent-kernel-rag/        # RagPipeline(retrieve/buildContext) + Document（实现方 z-kb）
-├── z-agent-kernel-tts/        # Tts + TtsOptions（实现方 z-msg）
-├── z-agent-kernel-realtime/   # Realtime + RealtimeSession + RealtimeEvent（实现方 z-msg）
+├── z-agent-kernel-tts/        # Tts + TtsOptions + TtsStream（synthesize/synthesizeStream/openStream）
+├── z-agent-kernel-realtime/   # Realtime + RealtimeSession（含 endTurn）+ RealtimeEvent（含 partial/audioFormat）
+├── z-agent-kernel-asr/        # Asr + AsrSession + AsrEvent —— 流式语音识别(SSR)契约（0.2.4 新增）
 ├── z-agent-kernel-skill/      # Skill · SkillLoader · SkillDocument · MarkdownSkillLoader（有实现）
 ├── z-agent-kernel-mcp/        # McpClient · McpTransport · StdioMcpTransport（有实现：子进程 stdio）
 ├── z-agent-kernel-credential/ # CredentialStore SPI · CredentialPool（有实现：轮换/冷却）
@@ -99,9 +104,9 @@ z-agent-kernel/
 └── z-agent-kernel-app/        # LlmAgent（implements Agent，0.2.3 新增）+ package-info
 ```
 
-规模实测：main `105` 个 `.java`（= 25 `package-info` + 29 `interface` + 49 `class` + 2 `enum`）共
-**6540** 行；test 侧 **2026-10-20 快照**：`11` 个 `.java` 共 **1716** 行（不含本仓 README 自守卫）。**没有任何模块设 `maven.deploy.skip`**（实测 grep 0 命中），
-所以 26 个坐标全部可发布 —— 这点与 z-ctc 的"演示应用永不上传"模型不同。
+规模实测：main `113` 个 `.java`（= 26 `package-info` + 30 `interface` + 55 `class` + 2 `enum`）共
+**8114** 行；test 侧 **2026-10-23 快照**：`20` 个 `.java` 共 **4497** 行（不含本仓 README 自守卫）。**没有任何模块设 `maven.deploy.skip`**（实测 grep 0 命中），
+所以 27 个坐标全部可发布 —— 这点与 z-ctc 的"演示应用永不上传"模型不同。
 
 ### 运行时契约：代码真正支持的 vs 只写了接口的
 
@@ -113,9 +118,12 @@ main 代码里的跨模块 `import` 边只有这些（逐文件实测）：
 ```
 agent      -> message(6)  tool(1)  types(2)
 app        -> agent(4)  llm(3)  message(3)  tool(2)  types(2)
-llm        -> message(11) tool(1)  types(10)
+asr        -> types(2)
+llm        -> message(12) tool(1)  types(12)
 memory     -> message(3)
 message    -> types(1)
+realtime   -> types(1)
+tts        -> types(1)
 ```
 
 `pipeline` / `rag` / `state` / `workspace` / `formatter` / `mcp` / `credential` 之间**零跨模块引用**：
@@ -132,16 +140,17 @@ MemoryStore|SessionStore|McpClient|CredentialStore|Skill|Tool` 的类分布为
    `PermissionCheck.PermissionDeniedException`、`MiddlewareChain.MiddlewareAbortedException`、
    `InterruptFlag.AgentInterruptedException`）。
    （`app` 已不再是空壳：0.2.3 起有 `LlmAgent` 实现 `Agent`。）
-2. **75 支 `@Test` 只落在 7 个模块**：`tool` 28 / `agent` 19 / `app` 11 / `mcp` 9 / `skill` 4 /
-   `credential` 2 / `state` 2；其余 **18 个模块零测试**（`classifier` / `console` / `embedding` / `event` /
-   `exception` / `formatter` / `llm` / `memory` / `message` / `middleware` / `permission` / `pipeline` /
-   `rag` / `realtime` / `tts` / `tui` / `types` / `workspace`），包括 14 文件的 `llm`（7 个 provider 一支没测）。
+2. **139 支 `@Test` 只落在 12 个模块**：`tool` 28 / `agent` 19 / `llm` 22 / `tts` 18 / `asr` 12 /
+   `app` 11 / `mcp` 9 / `types` 8 / `skill` 4 / `realtime` 4 / `credential` 2 / `state` 2；其余 **14 个模块零测试**（`classifier` / `console` / `embedding` / `event` /
+   `exception` / `formatter` / `memory` / `message` / `middleware` / `permission` / `pipeline` /
+   `rag` / `tui` / `workspace`）—— `llm` 那 22 支测的是**组合层**（故障切换 / 零模型规则应答），
+   7 个 provider 实现本身仍一支没测。
    复算（口径排除本仓 README 自守卫 `ReadmeClaimsTest.java`，否则 `tool` 会被自己数进去）：
    `for m in z-agent-kernel-*; do printf "%-14s %s\n" "${m#z-agent-kernel-}" "$(rg --no-ignore -c '@Test' -g '!ReadmeClaimsTest.java' "$m" 2>/dev/null | awk -F: '{s+=$2} END {print s+0}')"; done`
-3. **12 个模块在 foundation 内除版本表外没有任何消费者 pom 引用**：
+3. **10 个模块在 foundation 内除版本表外没有任何消费者 pom 引用**：
    `app` / `classifier` / `console` / `embedding` / `exception` / `permission` / `pipeline` /
-   `rag` / `realtime` / `state` / `tts` / `tui`。
-   复算（foundation 根跑，必须同时排掉本仓与 `z-boot/z-boot-parent` 的版本表，否则 25 个全被算成"被引用"）：
+   `rag` / `state` / `tui`。（语音三件 `asr` / `realtime` / `tts` 自 0.2.4 起由仓外 `z-voice-demo` 消费。）
+   复算（foundation 根跑，必须同时排掉本仓与 `z-boot/z-boot-parent` 的版本表，否则 26 个全被算成"被引用"）：
    `rg --no-ignore -l --glob 'pom.xml' '<artifactId>z-agent-kernel-<mod></artifactId>' . | grep -v '^\./z-agent-kernel/' | grep -v '^\./z-boot/z-boot-parent/'`
 
 ### 谁在用哪一块（实测，排除本仓与 `z-boot-parent` 的版本表）
@@ -150,13 +159,15 @@ MemoryStore|SessionStore|McpClient|CredentialStore|Skill|Tool` 的类分布为
 |---|---|
 | `tool` | z-agent · z-bot · z-llm-gateway · z-opc · z-skill |
 | `types` / `message` | z-agent · z-agent-proxy · z-bot · z-llm-gateway · z-skill |
-| `llm` | z-agent · z-bot · z-llm-gateway |
+| `llm` | z-agent · z-bot · z-llm-gateway · z-voice-demo |
 | `agent` | z-agent · z-agent-proxy · z-bot |
 | `memory` / `event` / `middleware` | z-agent · z-bot |
 | `credential` / `formatter` / `mcp` / `workspace` | 仅 z-bot |
 | `skill` | 仅 z-skill |
+| `asr` / `realtime` / `tts` | 仅 z-voice-demo |
 
-消费侧版本仍落后：`z-bot` 钉 `0.2.1`、`z-agent` 与 `z-opc` 钉 `0.2.3`，而 `z-skill` / `z-llm-gateway` 还钉 `0.1.0`。
+消费侧版本仍落后：`z-bot` 钉 `0.2.1`、`z-agent` 与 `z-opc` 钉 `0.2.3`，而 `z-skill` / `z-llm-gateway` 还钉 `0.1.0`；
+`z-voice-demo` 钉 `0.2.4`（本地领先版，Central 上尚未发布，demo 需 `mvn install` 后才能引到 `asr` 坐标）。
 
 ---
 
@@ -179,16 +190,16 @@ MemoryStore|SessionStore|McpClient|CredentialStore|Skill|Tool` 的类分布为
 ### 编译与测试
 
 ```bash
-mvn clean install -DskipTests   # 全 reactor：聚合根 + 25 模块
-mvn test                        # 75 支测试（复算口径排除本仓 README 自守卫），纯 JVM
+mvn clean install -DskipTests   # 全 reactor：聚合根 + 26 模块
+mvn test                        # 139 支测试（复算口径排除本仓 README 自守卫），纯 JVM
 ```
 
 解析顺序要求能拿到 `io.github.yuku123:z-boot-parent:1.1.0`（实测 repo1 200）。模块 POM 的
-`<dependency>` 一律不写字面版本：兄弟模块由根 DM 的 26 条 `${project.version}` 自钉，第三方由父链下发。
+`<dependency>` 一律不写字面版本：兄弟模块由根 DM 的 27 条 `${project.version}` 自钉，第三方由父链下发。
 
 ### 作为依赖消费
 
-`0.2.3` 已在 Maven Central，下游**不需要**本机 `mvn install`：
+`0.2.3` 已在 Maven Central（`0.2.4` 是本地领先版、尚未发布），下游**不需要**本机 `mvn install`：
 
 ```xml
 <dependency>
@@ -239,7 +250,11 @@ LlmProvider provider = new OpenAIProvider(apiKeyFromStore, apiBase);  // key 只
 | `PermissionCheck` | permission | `isAllowed(subject, action, target)` / `permissionsOf(subject)` + `PermissionDeniedException` | z-ctc |
 | `Skill` / `SkillLoader` | skill | `name` / `description` / `tools()` → `Map<String, ? extends Tool>` / `version` / `trigger`；`load` SKILL.md | z-skill |
 | `Formatter` | formatter | `getProtocol` / `getDirection` / `format(T)` / `parse(String)`，`Direction ∈ {REQUEST, RESPONSE, BIDIRECTIONAL}` | 上层；当前实际协议转换写在 llm provider 内部 |
-| `Tts` / `Realtime` | tts / realtime | `synthesize(text, voice, options)` → `InputStream` / `defaultVoice`；`open(onEvent, onError)` → `RealtimeSession`(`sendAudio`/`sendText`/`interrupt`/`close`) | z-msg |
+| `Tts` / `Realtime` / `Asr` | tts / realtime / asr | `synthesize(text, voice, options)` → `InputStream` / `defaultVoice` / `synthesizeStream(text, voice, options, onChunk, onError, onComplete)` / `openStream(voice, options, onChunk, onError, onComplete)` → `TtsStream`(`speak`/`finish`/`stop`/`close`)；`open(onEvent, onError)` → `RealtimeSession`(`sendAudio`/`sendText`/`endTurn`/`interrupt`/`close`)；`open(onEvent, onError)` → `AsrSession`(`sendAudio`/`endTurn`/`close`) | 语音服务侧（⚠️ 原写 z-msg 是错的：z-msg 的 Realtime 是消息推送） |
+| `FailoverLlmProvider` / `RuleBasedLlmProvider` | llm | `entry(name, provider, model)` / `names()` / `skippedNow()` / `chat(request)` / `streamChat(...)`；`rule(reply, keywords...)` / `keyword(keyword, reply)` / `match(messages)` / `reply(messages)` / `chat(request)` / `streamChat(...)` | 本仓给的**组合层**，厂商协议适配留给实现方 |
+| `FailoverAsr` | asr | `entry(name, asr, enabled)` / `names()` / `activeName()` / `open(onEvent, onError)` / `close(session)` / `inputFormat()` | 本仓给的**组合层** |
+| `FailoverTts` | tts | `entry(name, tts, enabled)` / `names()` / `defaultVoice()` / `synthesize(text, voice, options)` / `openStream(voice, options, onChunk, onError, onComplete)` / `synthesizeStream(text, voice, options, onChunk, onError, onComplete)` | 本仓给的**组合层** |
+| `AudioBytes` | types | `pcm16ToWav(pcm, sampleRate, channels)` / `pcm16ToWav(pcm, format)` / `toDataUrl(audio, mimeType)` / `toBase64(audio)` / `utf8(text)` | 本仓给的字节工具 |
 | `EventBus` | event | `publish(envelope)` / `publish(source, event)` / `subscribe(typePattern, handler)` → `Subscription.cancel()` / `close` | 本仓给 sync + async 两版 |
 
 ---
@@ -247,14 +262,14 @@ LlmProvider provider = new OpenAIProvider(apiKeyFromStore, apiBase);  // key 只
 ## 🧪 测试
 
 ```bash
-mvn -o test                     # 75 支（复算口径排除本仓 README 自守卫）；JDK 8 编译产物，不起端口
+mvn -o test                     # 139 支（复算口径排除本仓 README 自守卫）；JDK 8 编译产物，不起端口
 ```
 
-- 分布（复算口径排除本仓 README 自守卫 `ReadmeClaimsTest.java`）：`tool` 28 / `agent` 19 / `app` 11 / `mcp` 9 / `skill` 4 / `credential` 2 / `state` 2，合计 75 支。
+- 分布（复算口径排除本仓 README 自守卫 `ReadmeClaimsTest.java`）：`tool` 28 / `agent` 19 / `llm` 22 / `tts` 18 / `asr` 12 / `app` 11 / `mcp` 9 / `types` 8 / `skill` 4 / `realtime` 4 / `credential` 2 / `state` 2，合计 139 支。
 - **唯一碰操作系统的是 `mcp` 模块那 9 支**（`StdioMcpTransportTest` 3 支 + `StdioMcpTransportTimeoutTest` 6 支）：
   它们拿 `/bin/cat` 当"回声 MCP server"起子进程（`new StdioMcpTransport(Arrays.asList("/bin/cat"))`）。
   ⇒ 这 9 支在无 POSIX shell 的环境下会红，不是网络红；`llm` 的 7 个 provider 完全不进测试，因此本仓测试**不会发出任何外网请求**。
-- **18** 个模块零测试（含 `pipeline` / `rag` / `permission` / `embedding` 等纯接口模块，接口无逻辑可测）；完整名单见上方「哪些"面"是有名字没东西的」第 2 条。
+- **14** 个模块零测试（含 `pipeline` / `rag` / `permission` / `embedding` 等纯接口模块，接口无逻辑可测）；完整名单见上方「哪些"面"是有名字没东西的」第 2 条。
 
 ---
 
@@ -281,10 +296,23 @@ mvn -P central deploy           # source jar + javadoc jar + gpg 签名 + centra
 - 旧缺陷里的"超时管不住、会永久挂住"那一半**已修复**：读 stdout 已搬到独立 daemon 线程，
   主线程用 `BlockingQueue.poll(剩余时间)` 真等（`:96` / `:125`），server 不回话时 30s 超时抛
   `TimeoutException`（`:127`），不再卡死；该模块也补了 `StdioMcpTransportTimeoutTest`（6 支）覆盖这条。
-- 同文件 `:66` 的 `initialize` 握手把 `clientInfo.version` 写死 `"0.2.0"`，而本仓 `<revision>` 与
-  已发布版本都是 `0.2.3`。复算：`grep -n 'clientInfo' .../StdioMcpTransport.java`
+- 同文件 `:66` 的 `initialize` 握手把 `clientInfo.version` 写死 `"0.2.0"`，而本仓 `<revision>` 已是
+  `0.2.4`（Central 上已发布的最新仍是 `0.2.3`）。复算：`grep -n 'clientInfo' .../StdioMcpTransport.java`
 - 上述 `clientInfo` 那条不被该模块 9 支测试覆盖。
 - 根 POM `<description>` 的"1:1 对齐 agentScope"没有任何机器检查，别当验收结论。
+- **语音三契约（`asr` / `realtime` / `tts`）在本仓仍只有契约没有实现**：0.2.4 之前它们是零测试、零消费者的死面，现在契约补齐并有 34 支契约测试（`asr` 12 / `tts` 18 / `realtime` 4），但**仓内仍无实现方** —— 唯一实现是仓外的 `z-voice-demo`。
+  ⇒ 下游要接语音，仍需自己实现这三个契约，或直接依赖 demo。
+- **`FailoverAsr` 只在"建连阶段"挑一家**：ASR 是**有状态**的（音频要连续喂给同一家），中途换厂商等于放弃已积累的上下文，
+  ⇒ 契约**不做"谁先出结果就用谁"的竞速**，只做"按可用性选一家"。
+- **`FailoverLlmProvider` / `FailoverTts` 的熔断计数是进程内的**（内存里的 `consecutiveFailures`），多副本部署时各副本各算各的。
+  ⇒ 需要全局熔断/全局额度感知的话，得在消费侧（网关层）实现，本仓只保证**单进程内**不反复撞同一家。
+- **`FailoverTts` 的"换家"是文本重放，不是音频续接**：换过去后新的一家**从零合成**已喂过的文本 ⇒ 音色/语速与前一家可能不同（但用户一个字的没听到，听不出来）；已经吐过音频则**不换**。
+- **`RuleBasedLlmProvider` 的匹配是朴素 `contains`**：没有同义词、没有意图、没有多轮上下文 ⇒ 只能当第一档兜底 / FAQ，不能替代大模型。
+- `Asr` 的 `endTurn()` 与"服务端自带 VAD 断句"**没有仲裁机制**：百炼 `paraformer-realtime` 自带 VAD，会在静音后自行断句，与上层按静音时长调用的 `endTurn()` 可能重复触发同一句。  ⇒ 实现方需自行去重（本仓契约不替实现方做这个决定）。
+- `Tts.openStream(...)` 的**默认实现是整段缓冲到 `finish()` 再合成**（语义对、首字延迟高）；真增量要实现方覆写它。⇒ 延迟敏感的场景不能只用默认实现。
+- `TtsOptions.pitch` 曾经是 `Float` 且默认 `1.0f` —— MiniMax `t2a_v2` 的 `voice_setting.pitch` **只接受整数**，
+  传浮点一律被拒成 `2013 invalid params, invalid message format`（2026-10-23 真实链路实测：浮点 `0.0`/`1.0`/`2.0` 全被拒，整型 `0`/`1`/`2` 全通过）。
+  ⇒ 0.2.4 已把 `pitch` 改成 **`int` 半音偏移、默认 0**，从**类型上**杜绝实现方把它序列化成浮点。
 - 根 POM 注释（`pom.xml:143-146`）仍写"`z-boot-fleet` 里 kernel 槽位钉的是 0.1.1（0.2.0/0.2.1 实测 404）"（该注释已陈旧：fleet 文件夹随 2026-10-08 火车制拓扑退役，槽位并进了 `z-boot-parent`），
   已过期两重：`z-boot-fleet` 仓已退役（版本表并进 `z-boot-parent:1.1.0`，该格现钉 `0.2.1`），
   且 `0.2.1` / `0.2.2` / `0.2.3` 现在都在 repo1 上（`maven-metadata.xml` 实测）。

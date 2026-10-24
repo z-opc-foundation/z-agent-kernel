@@ -568,7 +568,7 @@ public class ReadmeClaimsTest {
         assertEquals(tag(pm.group(1), "artifactId"), "z-boot-parent", "[父项目] 根 pom 的 parent 不是 z-boot-parent");
         assertEquals(tag(pm.group(1), "version"), p.group(1), "[父项目] README 与根 pom 的 parent 版本不一致");
 
-        // 仓库行：「25 个 `jar` 子模块」
+        // 仓库行：「26 个 `jar` 子模块」
         String repoCell = tableCell("**仓库**", 0);
         int claimed = intClaim(repoCell, Pattern.compile("(\\d+) 个 `jar` 子模块"), "[仓库] 模块数");
         assertEquals(pomModules().size(), claimed, "[仓库] README 写 " + claimed + " 个 jar 子模块，根 pom <modules> 是 " + pomModules().size());
@@ -609,7 +609,7 @@ public class ReadmeClaimsTest {
         for (String name : mentioned) {
             assertTrue(disk.contains(name), "[模块清单] README 点名的 " + name + " 不是本仓模块");
         }
-        // 25 个模块都必须在 README 里被点名（不许漏）
+        // 26 个模块都必须在 README 里被点名（不许漏）
         for (String name : disk) {
             assertTrue(mentioned.contains(name), "[模块清单] 模块 " + name + " 在 README 里一次都没出现");
         }
@@ -640,9 +640,9 @@ public class ReadmeClaimsTest {
                 zutil.add(d[1] + ":" + d[2]);
             }
         }
-        assertEquals(25 + 1, selfPinned, "[根 DM] reactor 自钉条数与「根 + 25 模块」不符");
+        assertEquals(26 + 1, selfPinned, "[根 DM] reactor 自钉条数与「根 + 26 模块」不符");
 
-        // README 里两处都写了「26 条 ${project.version} 自钉」
+        // README 里两处都写了「27 条 ${project.version} 自钉」
         String struct = section("项目结构");
         int c1 = intClaim(struct, Pattern.compile("(\\d+) 条 reactor 自钉 DM"), "[根 DM] 结构树里的自钉条数");
         assertEquals(selfPinned, c1, "[根 DM] README 写 " + c1 + " 条自钉，根 pom 实数 " + selfPinned);
@@ -697,7 +697,7 @@ public class ReadmeClaimsTest {
         assertEquals(cl, (int) tb.get("class"), "[规模] class 数不一致");
         assertEquals(en, (int) tb.get("enum"), "[规模] enum 数不一致");
 
-        // 「26 个坐标全部可发布」= 聚合根 + 25 模块
+        // 「27 个坐标全部可发布」= 聚合根 + 26 模块
         int claimedCoords = intClaim(struct, Pattern.compile("所以 (\\d+) 个坐标全部可发布"), "[规模] 可发布坐标数");
         assertEquals(1 + pomModules().size(), claimedCoords, "[规模] 可发布坐标数不等于「根 + 模块数」");
 
@@ -1088,7 +1088,7 @@ public class ReadmeClaimsTest {
         String faces = section("哪些\"面\"是有名字没东西的");
         int totalClaim = intClaim(faces, Pattern.compile("\\*\\*(\\d+) 支 `@Test` 只落在 (\\d+) 个模块\\*\\*"), "[测试] 支数");
         int modClaim = intClaim(faces, Pattern.compile("\\*\\*\\d+ 支 `@Test` 只落在 (\\d+) 个模块\\*\\*"), "[测试] 模块数");
-        assertEquals(7, modClaim, "[测试] README 写 @Test 落在 " + modClaim + " 个模块");
+        assertEquals(12, modClaim, "[测试] README 写 @Test 落在 " + modClaim + " 个模块");
         assertEquals(nonZero.size(), modClaim, "[测试] 实测有测试的模块数是 " + nonZero.size() + "，README 写 " + modClaim);
         assertEquals(totalClaim, sum(nonZero), "[测试] README 写 " + totalClaim + " 支，实测 " + sum(nonZero));
 

@@ -82,6 +82,7 @@
         <module>z-agent-kernel-rag</module>
         <module>z-agent-kernel-tts</module>
         <module>z-agent-kernel-realtime</module>
+        <module>z-agent-kernel-asr</module>
         <module>z-agent-kernel-skill</module>
         <module>z-agent-kernel-mcp</module>
         <module>z-agent-kernel-credential</module>
@@ -102,7 +103,7 @@
 
     <properties>
         <!-- 项目自身版本 (CI-friendly versions 根, 发版改这一处即可) -->
-        <revision>0.2.3</revision>
+        <revision>0.2.4</revision>
 
         <!-- 删掉的键(父链同面值下发, 本仓不再重复声明): maven.compiler.source/target=8、
              project.build.sourceEncoding=UTF-8、flatten-maven-plugin.version=1.7.3
@@ -140,9 +141,9 @@
                 <artifactId>z-util-dsl-kernel</artifactId>
                 <version>1.2.4</version>
             </dependency>
-            <!-- 自钉本仓 26 个 reactor 坐标 = ${project.version}. 这一格不是装饰:
+            <!-- 自钉本仓 27 个 reactor 坐标 = ${project.version}. 这一格不是装饰:
                  z-boot-fleet 里 z-agent-kernel-* 槽位钉的是 repo1 上的 **0.1.1**(0.2.0/0.2.1 实测 404),
-                 而继承来的 DM 会改写**传递依赖**的版本 ⇒ 不写这 26 条, 模块之间拿到的兄弟件就是 0.1.1.
+                 而继承来的 DM 会改写**传递依赖**的版本 ⇒ 不写这 27 条, 模块之间拿到的兄弟件就是 0.1.1.
                  子模块的 <dependency> 因此一律不写版本(以前写 ${revision} 的 9 处已删). -->
             <dependency>
                 <groupId>io.github.yuku123</groupId>
@@ -238,6 +239,11 @@
             <dependency>
                 <groupId>io.github.yuku123</groupId>
                 <artifactId>z-agent-kernel-realtime</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.yuku123</groupId>
+                <artifactId>z-agent-kernel-asr</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

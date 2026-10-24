@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.yuku123</groupId>
+        <artifactId>z-agent-kernel</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <groupId>io.github.yuku123</groupId>
+    <artifactId>z-agent-kernel-asr</artifactId>
+    <version>${revision}</version>
+    <packaging>jar</packaging>
+
+    <name>z-agent-kernel-asr (spi)</name>
+    <description>interface Asr (0 实现, 流式语音识别 SSR 契约)</description>
+
+    <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <developers>
+        <developer>
+            <id>yuku123</id>
+            <name>yuku123</name>
+            <email>1340947819@qq.com</email>
+            <organization>z-team</organization>
+            <organizationUrl>https://github.com/yuku123</organizationUrl>
+            <timezone>+08:00</timezone>
+            <roles>
+                <role>owner</role>
+            </roles>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:git:https://github.com/z-opc-foundation/z-agent-kernel.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:z-opc-foundation/z-agent-kernel.git</developerConnection>
+        <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <dependencies>
+        <!-- inputFormat() 返回共享的 AudioFormat, 版本由根 pom 的 reactor 自钉 DM 下发 -->
+        <dependency>
+            <groupId>io.github.yuku123</groupId>
+            <artifactId>z-agent-kernel-types</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>
