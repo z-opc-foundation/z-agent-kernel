@@ -2,7 +2,7 @@
 
 > Agent 框架基座 —— 26 个 jar 模块的 SPI + 轻量默认实现：纯 POJO、不带 Spring、不建库表、不起服务。
 
-它解决的是"上层各写一套 agent 抽象"的问题。`z-llm` / `z-mcp` / `z-skill` / `z-bot` / `z-agent` /
+它解决的是"上层各写一套 agent 抽象"的问题。`z-llm-gateway` / `z-mcp` / `z-skill` / `z-bot` / `z-agent` /
 `z-agent-proxy` / `z-opc` 需要的不是同一个 agent 运行时，而是同一套**消息、工具、记忆、provider、
 会话**契约。本仓把这些契约连同可复用的默认实现（工具注册表、迭代预算、多 key 凭据池、7 个 LLM
 provider、stdio MCP 传输）一次性收口，上层只声明自己用到的那几个坐标。
