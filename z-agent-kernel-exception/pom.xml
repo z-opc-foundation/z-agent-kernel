@@ -15,8 +15,8 @@
     <version>${revision}</version>
     <packaging>jar</packaging>
 
-    <name>z-agent-kernel-exception (framework)</name>
-    <description>异常基类 (KernelException 等)</description>
+    <name>z-agent-kernel :: exception</name>
+    <description>异常基类 (KernelException 等) / framework</description>
 
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>

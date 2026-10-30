@@ -15,8 +15,8 @@
     <version>${revision}</version>
     <packaging>jar</packaging>
 
-    <name>z-agent-kernel-llm (core)</name>
-    <description>SPI + OpenAI/Anthropic/DeepSeek/Qwen/DashScope/Gemini 多 provider 默认实现</description>
+    <name>z-agent-kernel :: llm</name>
+    <description>SPI + OpenAI/Anthropic/DeepSeek/Qwen/DashScope/Gemini 多 provider 默认实现 / core</description>
 
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>

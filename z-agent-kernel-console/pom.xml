@@ -15,7 +15,7 @@
     <version>${revision}</version>
     <packaging>jar</packaging>
 
-    <name>z-agent-kernel-console (ui)</name>
+    <name>z-agent-kernel :: console</name>
     <description>terminal UI 接口 (实现方 z-bot)</description>
 
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>

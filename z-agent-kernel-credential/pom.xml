@@ -15,8 +15,8 @@
     <version>${revision}</version>
     <packaging>jar</packaging>
 
-    <name>z-agent-kernel-credential (spi)</name>
-    <description>interface CredentialStore (0 实现, 实现方 z-mist)</description>
+    <name>z-agent-kernel :: credential</name>
+    <description>interface CredentialStore (0 实现, 实现方 z-mist) / spi</description>
 
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>

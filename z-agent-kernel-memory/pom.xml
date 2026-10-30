@@ -15,8 +15,8 @@
     <version>${revision}</version>
     <packaging>jar</packaging>
 
-    <name>z-agent-kernel-memory (core)</name>
-    <description>记忆抽象 SPI + 默认实现 (短期/长期记忆)</description>
+    <name>z-agent-kernel :: memory</name>
+    <description>记忆抽象 SPI + 默认实现 (短期/长期记忆) / core</description>
 
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>

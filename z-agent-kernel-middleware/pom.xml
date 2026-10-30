@@ -15,8 +15,8 @@
     <version>${revision}</version>
     <packaging>jar</packaging>
 
-    <name>z-agent-kernel-middleware (core)</name>
-    <description>中间件 SPI + 默认实现</description>
+    <name>z-agent-kernel :: middleware</name>
+    <description>中间件 SPI + 默认实现 / core</description>
 
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>

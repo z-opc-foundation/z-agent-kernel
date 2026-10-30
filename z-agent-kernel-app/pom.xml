@@ -15,7 +15,7 @@
     <version>${revision}</version>
     <packaging>jar</packaging>
 
-    <name>z-agent-kernel-app (app)</name>
+    <name>z-agent-kernel :: app</name>
     <description>app 框架 SPI + 默认实现 (类似 Spring Boot Starter)</description>
 
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>

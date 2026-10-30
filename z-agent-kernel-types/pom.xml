@@ -15,8 +15,8 @@
     <version>${revision}</version>
     <packaging>jar</packaging>
 
-    <name>z-agent-kernel-types (framework)</name>
-    <description>通用类型定义 (MessageRole 等共享 enum)</description>
+    <name>z-agent-kernel :: types</name>
+    <description>通用类型定义 (MessageRole 等共享 enum) / framework</description>
 
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>

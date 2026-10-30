@@ -15,8 +15,8 @@
     <version>${revision}</version>
     <packaging>jar</packaging>
 
-    <name>z-agent-kernel-classifier (framework)</name>
-    <description>classifier SPI + 默认实现</description>
+    <name>z-agent-kernel :: classifier</name>
+    <description>classifier SPI + 默认实现 / framework</description>
 
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>

@@ -32,8 +32,8 @@
     <version>${revision}</version>
     <packaging>pom</packaging>
 
-    <name>z-agent-kernel (Agent Framework Base)</name>
-    <description>Agent 框架基座 25 子模块 (1:1 对齐 agentScope), 上层 z-llm/z-mcp/z-skill/z-bot/z-agent-proxy 共享</description>
+    <name>z-agent-kernel :: root</name>
+    <description>Agent 框架基座 25 子模块 (1:1 对齐 agentScope), 上层 z-llm/z-mcp/z-skill/z-bot/z-agent-proxy 共享 / Agent Framework Base</description>
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
 
     <licenses>

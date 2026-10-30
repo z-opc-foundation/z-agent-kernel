@@ -15,8 +15,8 @@
     <version>${revision}</version>
     <packaging>jar</packaging>
 
-    <name>z-agent-kernel-workspace (core)</name>
-    <description>工作区 SPI + 默认实现</description>
+    <name>z-agent-kernel :: workspace</name>
+    <description>工作区 SPI + 默认实现 / core</description>
 
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>

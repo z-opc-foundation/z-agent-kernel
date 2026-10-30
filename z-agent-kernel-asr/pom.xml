@@ -15,8 +15,8 @@
     <version>${revision}</version>
     <packaging>jar</packaging>
 
-    <name>z-agent-kernel-asr (spi)</name>
-    <description>interface Asr (0 实现, 流式语音识别 SSR 契约)</description>
+    <name>z-agent-kernel :: asr</name>
+    <description>interface Asr (0 实现, 流式语音识别 SSR 契约) / spi</description>
 
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>

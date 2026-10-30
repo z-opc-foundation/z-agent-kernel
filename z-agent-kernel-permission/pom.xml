@@ -15,8 +15,8 @@
     <version>${revision}</version>
     <packaging>jar</packaging>
 
-    <name>z-agent-kernel-permission (spi)</name>
-    <description>interface PermissionCheck (0 实现, 实现方 z-ctc)</description>
+    <name>z-agent-kernel :: permission</name>
+    <description>interface PermissionCheck (0 实现, 实现方 z-ctc) / spi</description>
 
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>

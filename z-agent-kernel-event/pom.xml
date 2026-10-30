@@ -15,8 +15,8 @@
     <version>${revision}</version>
     <packaging>jar</packaging>
 
-    <name>z-agent-kernel-event (core)</name>
-    <description>事件分发 SPI + 默认实现 (EventBus/EventEnvelope)</description>
+    <name>z-agent-kernel :: event</name>
+    <description>事件分发 SPI + 默认实现 (EventBus/EventEnvelope) / core</description>
 
     <url>https://github.com/z-opc-foundation/z-agent-kernel</url>
     <licenses>
