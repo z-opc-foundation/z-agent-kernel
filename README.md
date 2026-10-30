@@ -324,6 +324,7 @@ mvn -P central deploy           # source jar + javadoc jar + gpg 签名 + centra
 本项目文档统一收口在 `_doc/` 下（八类固定编号表，桶按需存在）:
 
 - [`_doc/001_arch/`](_doc/001_arch/) — 架构、接口、DB schema、协议、路线图
+- [`_doc/003_script/`](_doc/003_script/) — 构建与发布脚本（GPG passphrase 注入器）
 
 ---
 
