@@ -20,11 +20,11 @@ provider、stdio MCP 传输）一次性收口，上层只声明自己用到的�
 | **仓库** | `z-agent-kernel`（`packaging=pom` 聚合根 + 26 个 `jar` 子模块） |
 | **Maven 坐标** | `io.github.yuku123:z-agent-kernel:${revision}` |
 | **当前版本** | `0.2.4`（根 POM `<revision>`，CI-friendly + flatten-maven-plugin 1.7.3，`flattenMode=oss`） |
-| **父项目** | `io.github.yuku123:z-boot-parent:1.1.0`（`<relativePath/>` 留空，parent 在 repo1 不在磁盘；实测 200） |
-| **父链下发** | `z-boot-parent:1.1.0` 的自身 parent 是 `z-boot:1.0.19`；**1.1.0 已不再 import `z-boot-fleet` / `z-boot-dependencies`**（那两个仓已退役），版本表直接由 parent 自身属性下发：`<z-agent-kernel.version>=0.2.1`、`<java.version>=1.8`、`<maven.compiler.source/target>=8`、`<spring-boot.version>=2.7.18`、`<jackson.version>=2.18.6`、`<okhttp.version>=4.12.0` |
+| **父项目** | `io.github.yuku123:z-boot-parent:1.2.0`（`<relativePath/>` 留空，parent 在 repo1 不在磁盘；2026-10-30 Java17/SB3 火车，实测 200） |
+| **父链下发** | `z-boot-parent:1.2.0` 的自身 parent 是 `z-boot:1.0.19`；**1.2.0 已不再 import `z-boot-fleet` / `z-boot-dependencies`**（那两个仓已退役），版本表直接由 parent 自身属性下发：`<z-agent-kernel.version>=0.2.1`、`<java.version>=17`、`<maven.compiler.source/target>=17`、`<spring-boot.version>=3.3.13`、`<jackson.version>=2.18.6`、`<okhttp.version>=4.12.0` |
 | **Maven Central** | **`0.2.3` 已发布**：2026-10-20 逐个实测 26 个坐标（聚合根 + 25 模块）的 `maven-metadata.xml`，**每一个**都列出 `0.1.0` / `0.1.1` / `0.2.1` / `0.2.2` / `0.2.3`；**`0.2.0` 从未发布**（全坐标实测 404）。**`0.2.4` 为本地领先版（新增 `asr` 坐标，共 27 个），尚未发布** |
 | **默认端口** | 无（库仓，不启动进程） |
-| **运行口径** | Java 8（`java.version=1.8`、`maven.compiler.source/target=8` 由父链下发）· Spring Boot **未使用**（`org.springframework` 命中 **0 个文件**） |
+| **运行口径** | Java 17（`java.version=17`、`maven.compiler.source/target=17` 由父链下发）· Spring Boot **未使用**（`org.springframework` 命中 **0 个文件**） |
 | **最近更新** | 2026-10-23（补齐语音链路契约：新增 `asr` 模块、`Realtime` 加 `endTurn()`/`partial`/`audioFormat`、`Tts` 加 `synthesizeStream`/`openStream`、`types` 加 `AudioFormat`） |
 
 ---
@@ -175,7 +175,7 @@ MemoryStore|SessionStore|McpClient|CredentialStore|Skill|Tool` 的类分布为
 
 | 层级 | 技术（全部来自 pom 实测） |
 |------|---------------------------|
-| 语言 / 运行时 | Java 8（口径由 `z-boot-parent:1.1.0` 下发，本仓不重复声明） |
+| 语言 / 运行时 | Java 17（2026-10-30 火车；口径由 `z-boot-parent:1.2.0` 下发，本仓不重复声明） |
 | 构建 | Maven · CI-friendly `${revision}` + `flatten-maven-plugin:1.7.3`（`updatePomFile=true`, `oss`） |
 | HTTP / 流式 | `com.squareup.okhttp3:okhttp` + `okhttp-sse` 4.12.0 —— **仅 `llm` 模块使用** |
 | JSON | 走 `z-util-parser-json`（仅 `llm` 模块声明）—— **全仓零 Jackson 坐标**：没有任何 pom 声明该坐标，源码零 `com.fasterxml` import；只有根 pom 与 `llm/pom.xml` 的注释里提过版本号 |
@@ -194,7 +194,7 @@ mvn clean install -DskipTests   # 全 reactor：聚合根 + 26 模块
 mvn test                        # 139 支测试（复算口径排除本仓 README 自守卫），纯 JVM
 ```
 
-解析顺序要求能拿到 `io.github.yuku123:z-boot-parent:1.1.0`（实测 repo1 200）。模块 POM 的
+解析顺序要求能拿到 `io.github.yuku123:z-boot-parent:1.2.0`（实测 repo1 200）。模块 POM 的
 `<dependency>` 一律不写字面版本：兄弟模块由根 DM 的 27 条 `${project.version}` 自钉，第三方由父链下发。
 
 ### 作为依赖消费
@@ -314,7 +314,7 @@ mvn -P central deploy           # source jar + javadoc jar + gpg 签名 + centra
   传浮点一律被拒成 `2013 invalid params, invalid message format`（2026-10-23 真实链路实测：浮点 `0.0`/`1.0`/`2.0` 全被拒，整型 `0`/`1`/`2` 全通过）。
   ⇒ 0.2.4 已把 `pitch` 改成 **`int` 半音偏移、默认 0**，从**类型上**杜绝实现方把它序列化成浮点。
 - 根 POM 注释（`pom.xml:143-146`）仍写"`z-boot-fleet` 里 kernel 槽位钉的是 0.1.1（0.2.0/0.2.1 实测 404）"（该注释已陈旧：fleet 文件夹随 2026-10-08 火车制拓扑退役，槽位并进了 `z-boot-parent`），
-  已过期两重：`z-boot-fleet` 仓已退役（版本表并进 `z-boot-parent:1.1.0`，该格现钉 `0.2.1`），
+  已过期两重：`z-boot-fleet` 仓已退役（版本表并进 `z-boot-parent:1.2.0`，该格现钉 `0.2.1`），
   且 `0.2.1` / `0.2.2` / `0.2.3` 现在都在 repo1 上（`maven-metadata.xml` 实测）。
 
 ---

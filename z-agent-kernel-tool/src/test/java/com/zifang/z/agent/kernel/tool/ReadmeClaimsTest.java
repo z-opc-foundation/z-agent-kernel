@@ -3,6 +3,7 @@ package com.zifang.z.agent.kernel.tool;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -580,12 +581,60 @@ public class ReadmeClaimsTest {
                     "[仓库] 模块 " + mod + " 的 packaging 不是 jar");
         }
 
-        // 运行口径：Java 8 + Spring 0 命中
+        // 运行口径：Java 版本 + Spring 0 命中
+        //
+        // ⚠ 这里曾经硬断言「README 必须写 Java 8」（2026-10-30 SB3 迁移后失效）：
+        //   本仓早已随父链升到 Java 17（class major 61），README 却还写着 Java 8，
+        //   而守门人在**守护一个错误事实** ⇒ 假绿。
+        //   改成：**实测编译产物的 class major**，README 必须与之一致。
+        //   这样口径再变时守门人会立刻判红，而不是陪着 README 一起错。
         String runCell = tableCell("**运行口径**", 0);
-        assertTrue(runCell.contains("Java 8"), "[运行口径] README 未声明 Java 8：" + runCell);
+        int major = compiledClassMajorVersion();
+        String expectedJava = major == 61 ? "Java 17" : (major == 52 ? "Java 8" : "Java " + major);
+        assertTrue(runCell.contains(expectedJava),
+                "[运行口径] README 未声明实测编译口径 " + expectedJava + "（class major " + major + "）：" + runCell);
         int spring = grepJavaCount("org\\.spring" + "framework");
         assertEquals(0, spring, "[运行口径] README 写 Spring 0 命中，实测 " + spring + " 个文件命中");
         assertTrue(runCell.contains("**0 个文件**"), "[运行口径] README 未写 Spring 0 命中：" + runCell);
+    }
+
+    /**
+     * 实测本仓编译产物的 class 文件 major version（52 = Java 8，61 = Java 17）。
+     *
+     * <p>取 {@code target/classes} 下的主源码 class（不是 test-classes），
+     * 读它的 class 文件头 8 字节取 major —— 这是**实际编出来的字节码**，
+     * 比 README 文字、比 pom 里的属性都权威。
+     *
+     * @return major version；找不到产物时抛 AssertionError（拿不到真相就不假装通过）
+     */
+    private static int compiledClassMajorVersion() {
+        Path root = repoRoot();
+        List<Path> found = new ArrayList<>();
+        // 本仓是多模块仓，class 散在各子模块的 target/classes 下 ⇒ 全仓找
+        try (Stream<Path> s = Files.walk(root, 12)) {
+            s.filter(p -> p.toString().endsWith(".class"))
+                    .filter(p -> p.toString().contains("/target/classes/"))
+                    .filter(p -> !p.toString().contains("/target/test-classes/"))
+                    .forEach(found::add);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        if (found.isEmpty()) {
+            throw new AssertionError("[运行口径] 找不到编译产物（各模块 target/classes 下无 class），无法实测 class major");
+        }
+        for (Path p : found) {
+            try (java.io.DataInputStream in = new java.io.DataInputStream(Files.newInputStream(p))) {
+                int magic = in.readInt();
+                if (magic != 0xCAFEBABE) {
+                    continue;
+                }
+                in.readUnsignedShort();      // minor version
+                return in.readUnsignedShort(); // major version
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+        throw new AssertionError("[运行口径] 编译产物里没有合法的 class 文件，无法实测 class major");
     }
 
     /** 模块清单：根 pom <modules> 与磁盘目录逐字一致，且 README 点名的模块都存在。 */
