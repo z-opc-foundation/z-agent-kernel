@@ -175,7 +175,7 @@ z-agent-kernel/
 3. **守卫测试自身**：`ReadmeClaimsTest` 里**写死的期望值**也要改（模块数 + 1、有测试的模块数）—— 只改 README 不改守卫，下一轮新增能力会重复红在同一个坑上。
    ⚠ 断言消息里 `expected: <26> but was: <27>` 的方向与直觉相反：`expected` 是**写死的常量**、`was` 才是**从 README 读出来的数** ⇒ 先读守卫源码再改文档，否则会越改越错。
 4. **模块内**：每个模块都要有 `package-info.java`；`pom.xml` 里**不写字面版本**（兄弟模块版本由根 DM 自钉）；测试放 `src/test/java`（JUnit 4 或 5 均可 —— 根 POM 全局下发 `junit-jupiter` + `junit-vintage-engine`，**子模块不得自行声明 junit 坐标**）。
-5. **Java 8 铁律**：`maven.compiler.source/target=8`（父链 `z-boot-parent:1.1.0` 下发）⇒ 不得用 Java 9+ 语法（`List.of` / `Map.of` / `var` / 文本块）。
+5. **Java 8 铁律**：`maven.compiler.source/target=8`（父链 `z-boot-parent:1.2.4` 下发）⇒ 不得用 Java 9+ 语法（`List.of` / `Map.of` / `var` / 文本块）。
 6. **零 Spring 铁律**：全仓 `org.springframework` 必须 0 命中；不得有 `src/main/resources`、不得有 `application*.yml`、不得有 `@Controller`。
 7. **本文件不在守卫范围内** ⇒ 改模块数 / 规模 / 依赖时**要顺手改它**，否则它会长期落后于 README（本轮之前它就停在「25 个模块 / 6540 行 / 75 支测试 / llm 用 Jackson」）。
 

@@ -14,7 +14,7 @@
         上层仓 z-llm / z-mcp / z-skill / z-bot / z-agent-proxy / z-agent 各取所需子模块 declare.
         发版模式: reversion (CI-friendly versions) + flatten-maven-plugin, 跟 z-boot 同源.
 
-        消费入口: z-boot-parent:1.0.19 —— 父链 = z-boot-parent -> z-boot-dependencies:1.0.19(第三方地板,
+        消费入口: z-boot-parent:1.2.4 —— 父链 = z-boot-parent -> z-boot-dependencies:1.0.19(第三方地板,
         156 条) + import z-boot-fleet:1.0.0(兄弟仓版本格), 另下发 Java 8 的 pluginManagement
         (maven-compiler-plugin 3.11.0 + -parameters / maven-surefire-plugin 2.22.2; 本仓原本没有这两条
         声明, 所以这里无需删除, 迁移后它们由父链供给).
@@ -23,7 +23,7 @@
     <parent>
         <groupId>io.github.yuku123</groupId>
         <artifactId>z-boot-parent</artifactId>
-        <version>1.2.3</version>
+        <version>1.2.4</version>
         <relativePath/>
     </parent>
 
